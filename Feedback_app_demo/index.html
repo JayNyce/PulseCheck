@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+        .feedback-container {
+            margin-top: 20px;
+        }
+        .feedback-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Feedback App</h1>
+
+    <div id="loginSection">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <label for="username">Enter your name:</label><br>
+            <input type="text" id="username" required>
+            <button type="submit">Login</button>
+            <button type="button" id="anonymousButton">Submit Anonymously</button>
+        </form>
+    </div>
+
+    <div id="feedbackSection" style="display: none;">
+        <h2>Feedback Form</h2>
+        <form id="feedbackForm">
+            <label for="feedback">Your Feedback:</label><br>
+            <textarea id="feedback" rows="4" required></textarea><br>
+            <label for="rating">Rating (1-5):</label><br>
+            <input type="number" id="rating" min="1" max="5" required><br>
+            <button type="submit">Submit Feedback</button>
+            <button type="button" id="clearButton">Clear</button>
+        </form>
+
+        <div class="feedback-container" id="feedbackContainer">
+            <h2>Submitted Feedback:</h2>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const feedbackSection = document.getElementById('feedbackSection');
+        const feedbackContainer = document.getElementById('feedbackContainer');
+        const clearButton = document.getElementById('clearButton');
+        let currentUser = '';
+
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            currentUser = usernameInput.value;
+            loginSection.style.display = 'none';
+            feedbackSection.style.display = 'block';
+        });
+
+        document.getElementById('anonymousButton').addEventListener('click', function() {
+            currentUser = 'Anonymous';
+            loginSection.style.display = 'none';
+            feedbackSection.style.display = 'block';
+        });
+
+        feedbackForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const feedback = document.getElementById('feedback').value;
+            const rating = document.getElementById('rating').value;
+
+            const feedbackItem = document.createElement('div');
+            feedbackItem.classList.add('feedback-item');
+            feedbackItem.innerHTML = `<strong>${currentUser} (Rating: ${rating})</strong><br>${feedback}`;
+            feedbackContainer.appendChild(feedbackItem);
+
+            // Clear form after submission
+            feedbackForm.reset();
+        });
+
+        clearButton.addEventListener('click', function() {
+            feedbackForm.reset();
+        });
+    </script>
+</body>
+</html>
