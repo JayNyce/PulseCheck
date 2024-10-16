@@ -1,5 +1,7 @@
+// src/app/api/feedbacks/route.ts
+
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // Import the Prisma client from prisma.ts
+import prisma from '@/lib/prisma';
 
 // GET Method: Fetch feedbacks given to the user with to_user_id
 export async function GET(request: Request) {
@@ -13,7 +15,7 @@ export async function GET(request: Request) {
     }
 
     const userId = parseInt(to_user_id);
-    
+
     // Validate the to_user_id as a valid integer
     if (isNaN(userId)) {
       return NextResponse.json({ error: 'Invalid to_user_id' }, { status: 400 });
@@ -31,7 +33,6 @@ export async function GET(request: Request) {
 
     // Always return an array, even if no feedback is found
     return NextResponse.json(feedbacks || []);
-
   } catch (error) {
     console.error('Error fetching feedbacks:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -53,7 +54,10 @@ export async function POST(request: Request) {
     // Ensure the rating is a valid integer between 1 and 5
     const ratingInt = parseInt(rating);
     if (isNaN(ratingInt) || ratingInt < 1 || ratingInt > 5) {
-      return NextResponse.json({ error: 'Invalid rating. Rating must be between 1 and 5.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid rating. Rating must be between 1 and 5.' },
+        { status: 400 }
+      );
     }
 
     // Parse and validate user IDs
@@ -66,17 +70,16 @@ export async function POST(request: Request) {
     // Create a new feedback record in the database
     const feedback = await prisma.feedback.create({
       data: {
-        topic, // Topic of feedback
-        rating: ratingInt, // Rating (ensured as an integer)
-        comment, // Feedback comment
-        toUserId, // The user receiving the feedback
-        fromUserId, // The user giving the feedback
+        topic,
+        rating: ratingInt,
+        comment,
+        toUserId,
+        fromUserId,
       },
     });
 
     // Return the newly created feedback as a JSON response
     return NextResponse.json(feedback);
-
   } catch (error) {
     console.error('Error submitting feedback:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

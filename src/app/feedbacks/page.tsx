@@ -1,20 +1,50 @@
+// src/app/feedbacks/page.tsx
+
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+interface Feedback {
+  id: number;
+  topic: string;
+  rating: number;
+  comment: string;
+  toUserId: number;
+  fromUserId: number;
+  created_at: string;
+}
+
+interface User {
+  id: string; // 'id' is a string because NextAuth's 'session.user.id' is a string
+  name: string;
+  email: string;
+}
+
+interface FormData {
+  topic: string;
+  rating: string;
+  comment: string;
+  to_user_id: string;
+}
+
 export default function FeedbackPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [formData, setFormData] = useState({ topic: '', rating: '', comment: '', to_user_id: '' });
-  const [searchQuery, setSearchQuery] = useState(''); // Search input
-  const [searchResults, setSearchResults] = useState([]); // Users that match the search query
-  const [selectedUser, setSelectedUser] = useState(null); // Selected user for feedback
-  const [loading, setLoading] = useState(false); // Loading state for feedbacks
-  const [searchLoading, setSearchLoading] = useState(false); // Loading state for searching users
-  const [message, setMessage] = useState(''); // Submission message
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [formData, setFormData] = useState<FormData>({
+    topic: '',
+    rating: '',
+    comment: '',
+    to_user_id: '',
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
   // If the session is loading, show a loading message
   if (status === 'loading') {
@@ -29,14 +59,15 @@ export default function FeedbackPage() {
 
   // Fetch feedbacks given to the logged-in user
   useEffect(() => {
-    if (session?.user && 'id' in session.user) {
+    if (session.user && session.user.id) {
+      const userId = session.user.id;
       const fetchFeedbacks = async () => {
         setLoading(true);
         try {
-          const res = await fetch(`/api/feedbacks?to_user_id=${session.user.id}`);
-          const data = await res.json();
+          const res = await fetch(`/api/feedbacks?to_user_id=${userId}`);
+          const data: Feedback[] = await res.json();
 
-          // Ensure feedbacks is an array, even if the response is null or undefined
+          // Ensure feedbacks is an array
           setFeedbacks(Array.isArray(data) ? data : []);
         } catch (error) {
           console.error('Error fetching feedbacks:', error);
@@ -47,25 +78,23 @@ export default function FeedbackPage() {
       fetchFeedbacks();
     }
   }, [session]);
-  
-  
 
   // Fetch users based on search query
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     if (query.length > 2) {
-      setSearchLoading(true); // Start search loading
+      setSearchLoading(true);
       try {
         const res = await fetch(`/api/users?search=${query}`);
-        const data = await res.json();
+        const data: User[] = await res.json();
         setSearchResults(data);
       } catch (error) {
         console.error('Error searching users:', error);
       } finally {
-        setSearchLoading(false); // End search loading
+        setSearchLoading(false);
       }
     } else {
-      setSearchResults([]); // Clear results if query is too short
+      setSearchResults([]);
     }
   };
 
@@ -78,24 +107,33 @@ export default function FeedbackPage() {
       return;
     }
 
+    if (!session.user || !session.user.id) {
+      alert('User session is not available.');
+      return;
+    }
+
     try {
       const res = await fetch('/api/feedbacks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, to_user_id: selectedUser.id, from_user_id: session.user.id }), // Submit feedback
+        body: JSON.stringify({
+          ...formData,
+          to_user_id: selectedUser.id,
+          from_user_id: session.user.id,
+        }),
       });
 
       if (res.ok) {
         // Feedback submission is successful
         setMessage('Feedback submitted successfully!');
-        setFormData({ topic: '', rating: '', comment: '', to_user_id: '' }); // Reset the form
-        setSelectedUser(null); // Clear selected user
-        setSearchQuery(''); // Clear search input
+        setFormData({ topic: '', rating: '', comment: '', to_user_id: '' });
+        setSelectedUser(null);
+        setSearchQuery('');
 
         // Fetch updated feedbacks
         const feedbackRes = await fetch(`/api/feedbacks?to_user_id=${session.user.id}`);
-        const data = await feedbackRes.json();
-        setFeedbacks(Array.isArray(data) ? data : []); // Ensure the data is an array
+        const data: Feedback[] = await feedbackRes.json();
+        setFeedbacks(Array.isArray(data) ? data : []);
       } else {
         // Feedback submission failed
         setMessage('Failed to submit feedback. Please try again.');
@@ -111,9 +149,9 @@ export default function FeedbackPage() {
     }
   };
 
-  // Modify the logout button to redirect to login page after logout
+  // Logout handler
   const handleLogout = () => {
-    signOut({ callbackUrl: '/auth/login' }); // Redirect to login after logout
+    signOut({ callbackUrl: '/auth/login' });
   };
 
   return (
@@ -121,7 +159,7 @@ export default function FeedbackPage() {
       {/* Logout Button */}
       <div className="w-full flex justify-end px-6 mb-6">
         <button
-          onClick={handleLogout} // Use handleLogout to redirect after logout
+          onClick={handleLogout}
           className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
         >
           Logout
@@ -132,7 +170,11 @@ export default function FeedbackPage() {
 
       {/* Show submission message */}
       {message && (
-        <p className={`text-center mb-4 ${message.includes('successfully') ? 'text-green-600' : 'text-red-600'} font-semibold`}>
+        <p
+          className={`text-center mb-4 ${
+            message.includes('successfully') ? 'text-green-600' : 'text-red-600'
+          } font-semibold`}
+        >
           {message}
         </p>
       )}
@@ -163,8 +205,8 @@ export default function FeedbackPage() {
                       className="p-2 cursor-pointer hover:bg-gray-200"
                       onClick={() => {
                         setSelectedUser(user);
-                        setSearchQuery(user.name); // Display selected user in the search input
-                        setSearchResults([]); // Clear search results
+                        setSearchQuery(user.name);
+                        setSearchResults([]);
                       }}
                     >
                       {user.name}
@@ -175,7 +217,11 @@ export default function FeedbackPage() {
             )}
           </div>
 
-          {selectedUser && <p className="mb-4">Giving feedback to: <strong>{selectedUser.name}</strong></p>}
+          {selectedUser && (
+            <p className="mb-4">
+              Giving feedback to: <strong>{selectedUser.name}</strong>
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -197,7 +243,9 @@ export default function FeedbackPage() {
                 className="w-full border border-gray-300 p-2 rounded"
                 required
               >
-                <option value="" disabled>Select a rating</option>
+                <option value="" disabled>
+                  Select a rating
+                </option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
@@ -217,7 +265,9 @@ export default function FeedbackPage() {
               />
             </div>
 
-            <button type="submit" className="bg-black text-white px-4 py-2 rounded">Submit Feedback</button>
+            <button type="submit" className="bg-black text-white px-4 py-2 rounded">
+              Submit Feedback
+            </button>
           </form>
         </div>
 
@@ -227,21 +277,21 @@ export default function FeedbackPage() {
 
           {loading ? (
             <div>Loading feedbacks...</div>
+          ) : feedbacks.length > 0 ? (
+            <div className="space-y-6">
+              {feedbacks.map((feedback) => (
+                <div key={feedback.id} className="border-b pb-4">
+                  <h3 className="font-bold">{feedback.topic}</h3>
+                  <p>Rating: {feedback.rating}/5</p>
+                  <p>{feedback.comment}</p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(feedback.created_at).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
           ) : (
-            Array.isArray(feedbacks) && feedbacks.length > 0 ? (
-              <div className="space-y-6">
-                {feedbacks.map((feedback) => (
-                  <div key={feedback.id} className="border-b pb-4">
-                    <h3 className="font-bold">{feedback.topic}</h3>
-                    <p>Rating: {feedback.rating}/5</p>
-                    <p>{feedback.comment}</p>
-                    <p className="text-sm text-gray-500">{new Date(feedback.created_at).toLocaleString()}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>No feedback available</p>
-            )
+            <p>No feedback available</p>
           )}
         </div>
       </div>

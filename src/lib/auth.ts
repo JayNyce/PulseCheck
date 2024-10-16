@@ -25,7 +25,12 @@ export const authOptions: AuthOptions = {
         });
 
         if (user && bcrypt.compareSync(credentials.password, user.password)) {
-          return { id: user.id, name: user.name, email: user.email };
+          // Return 'id' as a string
+          return {
+            id: user.id.toString(),
+            name: user.name,
+            email: user.email,
+          };
         }
 
         return null;
@@ -39,13 +44,13 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.id = user.id; // 'user.id' is already a string
       }
       return token;
     },
     async session({ session, token }) {
-      if (token?.id) {
-        session.user.id = token.id; // Add user ID to session
+      if (token) {
+        session.user.id = token.id as string; // Ensure 'token.id' is a string
       }
       return session;
     },
