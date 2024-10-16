@@ -18,7 +18,8 @@
     "nodemailer": "^6.9.15",
     "pg": "^8.13.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "prisma": "^5.21.0",
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
