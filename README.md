@@ -7,7 +7,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ### 1. **Clone the repository:**
 
 ```bash
-git clone https://github.com/your-repository-url.git
+git clone [https://github.com/JayNyce/PulseCheck.git]
 cd your-repository-folder
 ```
 
