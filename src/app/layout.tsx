@@ -1,10 +1,8 @@
 // src/app/layout.tsx
-import '@/styles/globals.css';
+"use client"; // Mark this as a client component
 
-export const metadata = {
-  title: 'PulseCheck',
-  description: 'Feedback app for students',
-};
+import '@/styles/globals.css';
+import { SessionProvider } from 'next-auth/react'; // Import SessionProvider
 
 export default function RootLayout({
   children,
@@ -13,7 +11,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SessionProvider>{children}</SessionProvider> {/* Wrap children with SessionProvider */}
+      </body>
     </html>
   );
 }
