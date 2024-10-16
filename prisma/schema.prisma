@@ -29,7 +29,7 @@ model Feedback {
   fromUserId  Int
   to_user     User     @relation("FeedbackToUser", fields: [toUserId], references: [id])
   toUserId    Int
-  course_name String
+  topic       String   // Changed from course_name to topic
   rating      Int
   comment     String
   created_at  DateTime @default(now())
