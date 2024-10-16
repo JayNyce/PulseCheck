@@ -29,7 +29,7 @@ export default function FeedbackPage() {
 
   // Fetch feedbacks given to the logged-in user
   useEffect(() => {
-    if (session) {
+    if (session?.user && 'id' in session.user) {
       const fetchFeedbacks = async () => {
         setLoading(true);
         try {
@@ -47,6 +47,8 @@ export default function FeedbackPage() {
       fetchFeedbacks();
     }
   }, [session]);
+  
+  
 
   // Fetch users based on search query
   const handleSearch = async (query: string) => {
@@ -80,12 +82,12 @@ export default function FeedbackPage() {
       const res = await fetch('/api/feedbacks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, to_user_id: selectedUser.id }), // Submit feedback to the selected user
+        body: JSON.stringify({ ...formData, to_user_id: selectedUser.id, from_user_id: session.user.id }), // Submit feedback
       });
 
       if (res.ok) {
         // Feedback submission is successful
-        setMessage('Feedback submitted successfully!'); // Set success message
+        setMessage('Feedback submitted successfully!');
         setFormData({ topic: '', rating: '', comment: '', to_user_id: '' }); // Reset the form
         setSelectedUser(null); // Clear selected user
         setSearchQuery(''); // Clear search input
