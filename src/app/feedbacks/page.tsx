@@ -51,10 +51,16 @@ export default function FeedbackPage() {
     return <div>Loading...</div>;
   }
 
-  // If no session, redirect to login
+  // Move the redirection logic into useEffect
+  useEffect(() => {
+    if (!session) {
+      router.push('/auth/login');
+    }
+  }, [session, router]);
+
+  // Optionally, you can return null or a placeholder while redirecting
   if (!session) {
-    router.push('/auth/login');
-    return null;
+    return null; // Or a loading indicator
   }
 
   // Fetch feedbacks given to the logged-in user
@@ -78,6 +84,8 @@ export default function FeedbackPage() {
       fetchFeedbacks();
     }
   }, [session]);
+
+  // Rest of your component code remains the same...
 
   // Fetch users based on search query
   const handleSearch = async (query: string) => {
