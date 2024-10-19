@@ -2,6 +2,8 @@
 
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -21,22 +23,27 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    const res = await fetch('/api/auth/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password, token }),
-    });
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, token }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (res.ok) {
-      setMessage('Password reset successful! Redirecting to login...');
-      // Redirect to login page after a delay
-      setTimeout(() => {
-        router.push('/auth/login');
-      }, 2000);
-    } else {
-      setMessage(data.message || 'An error occurred.');
+      if (res.ok) {
+        setMessage('Password reset successful! Redirecting to login...');
+        // Redirect to login page after a delay
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 2000);
+      } else {
+        setMessage(data.message || 'An error occurred.');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      setMessage('An unexpected error occurred.');
     }
   };
 
