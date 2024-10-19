@@ -21,13 +21,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Invalid to_user_id' }, { status: 400 });
     }
 
-    // Fetch feedbacks for the specified user
+    // Fetch feedbacks for the specified user, including fromUser
     const feedbacks = await prisma.feedback.findMany({
       where: {
         toUserId: userId,
       },
       orderBy: {
         created_at: 'desc',
+      },
+      include: {
+        fromUser: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -46,8 +53,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { topic, rating, comment, to_user_id, from_user_id } = body;
 
-    // Check if all fields are present
-    if (!topic || !rating || !comment || !to_user_id || !from_user_id) {
+    // Validate required fields
+    if (!topic || !rating || !comment || !to_user_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -62,10 +69,19 @@ export async function POST(request: Request) {
 
     // Parse and validate user IDs
     const toUserId = parseInt(to_user_id);
-    const fromUserId = parseInt(from_user_id);
-    if (isNaN(toUserId) || isNaN(fromUserId)) {
-      return NextResponse.json({ error: 'Invalid user IDs.' }, { status: 400 });
+    if (isNaN(toUserId)) {
+      return NextResponse.json({ error: 'Invalid to_user_id.' }, { status: 400 });
     }
+
+    // Handle fromUserId (can be undefined)
+    let fromUserId: number | undefined;
+    if (from_user_id !== undefined) {
+      fromUserId = parseInt(from_user_id);
+      if (isNaN(fromUserId)) {
+        return NextResponse.json({ error: 'Invalid from_user_id.' }, { status: 400 });
+      }
+    }
+    // If from_user_id is undefined, fromUserId remains undefined
 
     // Create a new feedback record in the database
     const feedback = await prisma.feedback.create({
@@ -74,7 +90,7 @@ export async function POST(request: Request) {
         rating: ratingInt,
         comment,
         toUserId,
-        fromUserId,
+        fromUserId, // This can be undefined
       },
     });
 

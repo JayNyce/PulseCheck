@@ -12,12 +12,15 @@ interface Feedback {
   rating: number;
   comment: string;
   toUserId: number;
-  fromUserId: number;
+  fromUserId?: number; // Optional
   created_at: string;
+  fromUser?: {
+    name: string | null;
+  };
 }
 
 interface User {
-  id: string; // 'id' is a string because NextAuth's 'session.user.id' is a string
+  id: string;
   name: string;
   email: string;
 }
@@ -27,6 +30,7 @@ interface FormData {
   rating: string;
   comment: string;
   to_user_id: string;
+  anonymous: boolean;
 }
 
 export default function FeedbackPage() {
@@ -38,6 +42,7 @@ export default function FeedbackPage() {
     rating: '',
     comment: '',
     to_user_id: '',
+    anonymous: false,
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -51,16 +56,15 @@ export default function FeedbackPage() {
     return <div>Loading...</div>;
   }
 
-  // Move the redirection logic into useEffect
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!session) {
       router.push('/auth/login');
     }
   }, [session, router]);
 
-  // Optionally, you can return null or a placeholder while redirecting
   if (!session) {
-    return null; // Or a loading indicator
+    return null; // Optionally, return a loading indicator
   }
 
   // Fetch feedbacks given to the logged-in user
@@ -84,8 +88,6 @@ export default function FeedbackPage() {
       fetchFeedbacks();
     }
   }, [session]);
-
-  // Rest of your component code remains the same...
 
   // Fetch users based on search query
   const handleSearch = async (query: string) => {
@@ -115,10 +117,8 @@ export default function FeedbackPage() {
       return;
     }
 
-    if (!session.user || !session.user.id) {
-      alert('User session is not available.');
-      return;
-    }
+    // Set from_user_id to undefined if anonymous
+    const from_user_id = formData.anonymous ? undefined : session.user.id;
 
     try {
       const res = await fetch('/api/feedbacks', {
@@ -127,14 +127,14 @@ export default function FeedbackPage() {
         body: JSON.stringify({
           ...formData,
           to_user_id: selectedUser.id,
-          from_user_id: session.user.id,
+          from_user_id,
         }),
       });
 
       if (res.ok) {
         // Feedback submission is successful
         setMessage('Feedback submitted successfully!');
-        setFormData({ topic: '', rating: '', comment: '', to_user_id: '' });
+        setFormData({ topic: '', rating: '', comment: '', to_user_id: '', anonymous: false });
         setSelectedUser(null);
         setSearchQuery('');
 
@@ -273,6 +273,19 @@ export default function FeedbackPage() {
               />
             </div>
 
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.anonymous}
+                onChange={(e) => setFormData({ ...formData, anonymous: e.target.checked })}
+                id="anonymous"
+                className="mr-2"
+              />
+              <label htmlFor="anonymous" className="font-medium">
+                Submit anonymously
+              </label>
+            </div>
+
             <button type="submit" className="bg-black text-white px-4 py-2 rounded">
               Submit Feedback
             </button>
@@ -292,6 +305,11 @@ export default function FeedbackPage() {
                   <h3 className="font-bold">{feedback.topic}</h3>
                   <p>Rating: {feedback.rating}/5</p>
                   <p>{feedback.comment}</p>
+                  {feedback.fromUser ? (
+                    <p className="text-sm text-gray-500">From: {feedback.fromUser.name}</p>
+                  ) : (
+                    <p className="text-sm text-gray-500">From: Anonymous</p>
+                  )}
                   <p className="text-sm text-gray-500">
                     {new Date(feedback.created_at).toLocaleString()}
                   </p>

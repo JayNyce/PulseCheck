@@ -9,9 +9,6 @@ datasource db {
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
-
-// prisma/schema.prisma
-
 model User {
   id                       Int        @id @default(autoincrement())
   name                     String
@@ -32,10 +29,13 @@ model Feedback {
   comment     String
   created_at  DateTime @default(now())
 
-  fromUserId  Int
+  fromUserId  Int?     // Made optional
   toUserId    Int
 
   // Relations
-  fromUser User @relation("FeedbackFromUser", fields: [fromUserId], references: [id])
-  toUser   User @relation("FeedbackToUser", fields: [toUserId], references: [id])
+  fromUser User? @relation("FeedbackFromUser", fields: [fromUserId], references: [id])
+  toUser   User  @relation("FeedbackToUser", fields: [toUserId], references: [id])
+
+  @@index([toUserId])
+  @@index([fromUserId])
 }
