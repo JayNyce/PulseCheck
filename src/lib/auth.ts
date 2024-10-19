@@ -1,6 +1,6 @@
 // lib/auth.ts
 
-import NextAuth, { AuthOptions, SessionStrategy } from 'next-auth';
+import { AuthOptions, SessionStrategy } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
@@ -12,28 +12,44 @@ export const authOptions: AuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'text' },
+        email: { label: 'Email', type: 'email', placeholder: 'you@example.com' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error('Email and password are required');
+          }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
 
-        if (user && bcrypt.compareSync(credentials.password, user.password)) {
-          // Return 'id' as a string
+          if (!user) {
+            throw new Error('No user found with this email');
+          }
+
+          if (!user.password) {
+            throw new Error('No password set for this user');
+          }
+
+          // Compare the provided password with the stored hashed password
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isValid) {
+            throw new Error('Invalid email or password');
+          }
+
+          // Return user object
           return {
             id: user.id.toString(),
             name: user.name,
             email: user.email,
           };
+        } catch (error) {
+          console.error('Error in authorize function:', error);
+          throw new Error('Invalid email or password');
         }
-
-        return null;
       },
     }),
   ],
@@ -44,12 +60,12 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id; // 'user.id' is already a string
+        token.id = user.id; // Ensure 'user.id' is a string
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id as string; // Ensure 'token.id' is a string
       }
       return session;
@@ -57,5 +73,6 @@ export const authOptions: AuthOptions = {
   },
   pages: {
     signIn: '/auth/login',
+    error: '/auth/error', // Optional: Custom error page
   },
 };

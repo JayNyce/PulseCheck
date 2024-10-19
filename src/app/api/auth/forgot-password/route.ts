@@ -1,29 +1,29 @@
 // src/app/api/auth/forgot-password/route.ts
+
 import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 
-// Ensure we use a singleton pattern for PrismaClient
-declare global {
-  var prisma: PrismaClient | undefined;
-}
-
-const prisma = global.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
-}
+const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
     const { email } = await request.json();
 
+    if (!email) {
+      return NextResponse.json({ message: 'Email is required' }, { status: 400 });
+    }
+
     // Check if the user exists in the database
     const user = await prisma.user.findUnique({ where: { email } });
+
     if (!user) {
-      // We do not want to reveal if the email exists for security reasons
-      return NextResponse.json({ message: 'If this email exists, a password reset link will be sent.' }, { status: 200 });
+      // Do not reveal if the email exists
+      return NextResponse.json(
+        { message: 'If this email exists, a password reset link will be sent.' },
+        { status: 200 }
+      );
     }
 
     // Generate a secure reset token and its expiry
@@ -56,8 +56,10 @@ export async function POST(request: Request) {
       text: `You requested a password reset. Click the link to reset your password: ${resetUrl}`,
     });
 
-    return NextResponse.json({ message: 'If this email exists, a password reset link will be sent.' }, { status: 200 });
-
+    return NextResponse.json(
+      { message: 'If this email exists, a password reset link will be sent.' },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Error in forgot-password route:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
