@@ -1,19 +1,16 @@
-// src/app/auth/reset-password/page.tsx
+// src/app/auth/reset-password/[token]/page.tsx
 
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordPage({ params }: { params: { token: string } }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const token = params.token;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
