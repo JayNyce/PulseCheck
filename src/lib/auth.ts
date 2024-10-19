@@ -1,4 +1,4 @@
-// lib/auth.ts
+// src/lib/auth.ts
 
 import { AuthOptions, SessionStrategy } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -40,11 +40,12 @@ export const authOptions: AuthOptions = {
             throw new Error('Invalid email or password');
           }
 
-          // Return user object
+          // Return user object with isAdmin
           return {
             id: user.id.toString(),
             name: user.name,
             email: user.email,
+            isAdmin: user.isAdmin,
           };
         } catch (error) {
           console.error('Error in authorize function:', error);
@@ -61,12 +62,14 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id; // Ensure 'user.id' is a string
+        token.isAdmin = user.isAdmin; // Include isAdmin in JWT
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string; // Ensure 'token.id' is a string
+        session.user.isAdmin = token.isAdmin as boolean; // Include isAdmin in session
       }
       return session;
     },

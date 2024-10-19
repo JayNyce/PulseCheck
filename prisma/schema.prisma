@@ -1,3 +1,5 @@
+// schema.prisma
+
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/.prisma/client"
@@ -14,28 +16,39 @@ model User {
   name                     String
   email                    String     @unique
   password                 String
-  resetPasswordToken       String?    // Optional reset token
-  resetPasswordTokenExpiry DateTime?  // Optional expiry time
+  resetPasswordToken       String?
+  resetPasswordTokenExpiry DateTime?
+  isAdmin                  Boolean    @default(false)
 
   // Relations
-  feedbacksFrom Feedback[] @relation("FeedbackFromUser")
-  feedbacksTo   Feedback[] @relation("FeedbackToUser")
+  feedbacksGiven      Feedback[] @relation("FeedbackFromUser")
+  feedbacksReceived   Feedback[] @relation("FeedbackToUser")
+}
+
+model Topic {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  feedbacks Feedback[]
+
+  @@map("topics")
 }
 
 model Feedback {
   id          Int      @id @default(autoincrement())
-  topic       String
   rating      Int
   comment     String
   created_at  DateTime @default(now())
 
-  fromUserId  Int?     // Made optional
+  fromUserId  Int?
   toUserId    Int
+  topicId     Int
 
   // Relations
   fromUser User? @relation("FeedbackFromUser", fields: [fromUserId], references: [id])
   toUser   User  @relation("FeedbackToUser", fields: [toUserId], references: [id])
+  topic    Topic @relation(fields: [topicId], references: [id])
 
   @@index([toUserId])
   @@index([fromUserId])
+  @@index([topicId])
 }

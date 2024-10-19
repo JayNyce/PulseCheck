@@ -1,8 +1,8 @@
-// src/app/layout.tsx
-"use client"; // Mark this as a client component
+'use client';
 
-import '@/styles/globals.css';
-import { SessionProvider } from 'next-auth/react'; // Import SessionProvider
+import { SessionProvider } from 'next-auth/react';
+import './globals.css'; // Ensure this import is present
+import Navbar from '@/components/Navbar'; // Import the Navbar component
 
 export default function RootLayout({
   children,
@@ -12,7 +12,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SessionProvider>{children}</SessionProvider> {/* Wrap children with SessionProvider */}
+        <SessionProvider>
+          {/* Navbar added back here */}
+          <Navbar />
+          <main>{children}</main>
+        </SessionProvider>
       </body>
     </html>
   );
