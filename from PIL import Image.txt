@@ -1,0 +1,35 @@
+from PIL import Image
+import os
+
+# Function to resize images
+def resize_images(input_folder, output_folder, new_size):
+    # Create output folder if it does not exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Iterate over files in the input folder
+    for filename in os.listdir(input_folder):
+        file_path = os.path.join(input_folder, filename)
+        
+        # Check if the file is an image
+        try:
+            with Image.open(file_path) as img:
+                # Resize the image
+                resized_img = img.resize(new_size, Image.ANTIALIAS)
+                
+                # Save the resized image
+                output_path = os.path.join(output_folder, filename)
+                resized_img.save(output_path)
+                print(f"Resized image saved to {output_path}")
+        except Exception as e:
+            print(f"Could not process {filename}: {e}")
+
+# Folder paths
+input_folder = 'path/to/your/input_folder'  # Change this to your input folder path
+output_folder = 'path/to/your/output_folder'  # Change this to your output folder path
+
+# New size for resizing (width, height)
+new_size = (1280, 720)  # Example resolution, change as needed
+
+# Resize images
+resize_images(input_folder, output_folder, new_size)
