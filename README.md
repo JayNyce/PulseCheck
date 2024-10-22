@@ -92,6 +92,11 @@ npx prisma studio
 
 This opens a web-based UI to explore your database content.
 
+###8. *Install Framer Motion and react_slick_carousel for dynamic animations on UI*
+Run the below two commands to make sure the dynamic animations on UI work:
+1. npm install react-slick slick-carousel
+2. npm install framer-motion
+
 ### 7. **Learn More**
 
 To learn more about Next.js and its features, check out the following resources:
