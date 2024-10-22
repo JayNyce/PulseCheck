@@ -92,7 +92,7 @@ npx prisma studio
 
 This opens a web-based UI to explore your database content.
 
-###8. *Install Framer Motion and react_slick_carousel for dynamic animations on UI*
+ **Install Framer Motion and react_slick_carousel for dynamic animations on UI**
 Run the below two commands to make sure the dynamic animations on UI work:
 1. npm install react-slick slick-carousel
 2. npm install framer-motion
