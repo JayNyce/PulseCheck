@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
@@ -34,7 +34,7 @@ interface Topic {
 }
 
 interface FormData {
-  topicId: string; // Changed from 'topic' to 'topicId'
+  topicId: string;
   rating: string;
   comment: string;
   to_user_id: string;
@@ -45,10 +45,7 @@ export default function FeedbackPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // State for feedbacks received by the logged-in user
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
-
-  // State for the feedback form
   const [formData, setFormData] = useState<FormData>({
     topicId: '',
     rating: '',
@@ -56,23 +53,14 @@ export default function FeedbackPage() {
     to_user_id: '',
     anonymous: false,
   });
-
-  // State for user search
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
-
-  // State for loading feedbacks
   const [loading, setLoading] = useState(false);
-
-  // State for feedback submission messages
   const [message, setMessage] = useState('');
+  const [topics, setTopics] = useState<Topic[]>([]); // Initialize as empty array
 
-  // State for predefined topics
-  const [topics, setTopics] = useState<Topic[]>([]);
-
-  // State for filters in the sidebar
   const [filters, setFilters] = useState({
     keyword: '',
     startDate: '',
@@ -83,23 +71,21 @@ export default function FeedbackPage() {
     anonymous: '',
   });
 
-  /**
-   * Redirects to login if not authenticated
-   */
   useEffect(() => {
-    if (status === 'loading') return; // Do nothing while loading
+    if (status === 'loading') return;
     if (!session) router.push('/auth/login');
   }, [session, status, router]);
 
-  /**
-   * Fetches predefined topics from the API
-   */
   useEffect(() => {
     const fetchTopics = async () => {
       try {
         const res = await fetch('/api/topics');
         const data: Topic[] = await res.json();
-        setTopics(data);
+        if (Array.isArray(data)) {
+          setTopics(data);
+        } else {
+          console.error('Expected an array of topics', data);
+        }
       } catch (error) {
         console.error('Error fetching topics:', error);
       }
@@ -107,9 +93,6 @@ export default function FeedbackPage() {
     fetchTopics();
   }, []);
 
-  /**
-   * Fetches feedbacks based on filters
-   */
   useEffect(() => {
     if (session?.user?.id) {
       const fetchFeedbacks = async () => {
@@ -118,15 +101,12 @@ export default function FeedbackPage() {
           const params = new URLSearchParams();
           params.append('to_user_id', session.user.id.toString());
 
-          // Add filters to params
           Object.entries(filters).forEach(([key, value]) => {
             if (value) params.append(key, value);
           });
 
           const res = await fetch(`/api/feedbacks?${params.toString()}`);
           const data: Feedback[] = await res.json();
-
-          // Ensure feedbacks is an array
           setFeedbacks(Array.isArray(data) ? data : []);
         } catch (error) {
           console.error('Error fetching feedbacks:', error);
@@ -138,10 +118,6 @@ export default function FeedbackPage() {
     }
   }, [session, filters]);
 
-  /**
-   * Handles user search input
-   * @param query - The search query input by the user
-   */
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     if (query.length > 2) {
@@ -160,10 +136,6 @@ export default function FeedbackPage() {
     }
   };
 
-  /**
-   * Handles form submission for submitting feedback
-   * @param e - The form event
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -172,7 +144,6 @@ export default function FeedbackPage() {
       return;
     }
 
-    // Set from_user_id to undefined if anonymous
     const from_user_id = formData.anonymous ? undefined : session?.user?.id;
 
     try {
@@ -189,19 +160,16 @@ export default function FeedbackPage() {
       });
 
       if (res.ok) {
-        // Feedback submission is successful
         setMessage('Feedback submitted successfully!');
         setFormData({ topicId: '', rating: '', comment: '', to_user_id: '', anonymous: false });
         setSelectedUser(null);
         setSearchQuery('');
         setSearchResults([]);
 
-        // Fetch updated feedbacks
         const feedbackRes = await fetch(`/api/feedbacks?to_user_id=${session?.user?.id}`);
         const data: Feedback[] = await feedbackRes.json();
         setFeedbacks(Array.isArray(data) ? data : []);
       } else {
-        // Feedback submission failed
         const errorData = await res.json();
         setMessage(errorData.error || 'Failed to submit feedback. Please try again.');
       }
@@ -209,48 +177,17 @@ export default function FeedbackPage() {
       console.error('Error submitting feedback:', error);
       setMessage('An error occurred. Please try again.');
     } finally {
-      // Clear the message after 3 seconds
       setTimeout(() => {
         setMessage('');
       }, 3000);
     }
   };
 
-  /**
-   * Handles logout action
-   */
-  const handleLogout = () => {
-    signOut({ callbackUrl: '/auth/login' });
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="w-full flex justify-between items-center px-6 py-4 bg-gray-100">
-        <h1 className="text-2xl font-bold">PulseCheck</h1>
-        <div>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-2"
-          >
-            Dashboard
-          </button>
-          {/* Conditionally render Admin Dashboard button if user is admin */}
-          {session?.user?.isAdmin && (
-            <button
-              onClick={() => router.push('/admin')}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mr-2"
-            >
-              Admin
-            </button>
-          )}
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            Logout
-          </button>
-        </div>
+        {/* Header will be managed by NavBar */}
       </div>
 
       {/* Main Content */}
@@ -259,7 +196,6 @@ export default function FeedbackPage() {
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h2 className="text-xl font-bold mb-4">Filters</h2>
           <div className="space-y-4">
-            {/* Keyword Filter */}
             <div>
               <label className="block mb-1 font-medium">Keyword</label>
               <input
@@ -271,7 +207,6 @@ export default function FeedbackPage() {
               />
             </div>
 
-            {/* Topic Filter */}
             <div>
               <label className="block mb-1 font-medium">Topic</label>
               <select
@@ -288,7 +223,6 @@ export default function FeedbackPage() {
               </select>
             </div>
 
-            {/* Start Date Filter */}
             <div>
               <label className="block mb-1 font-medium">Start Date</label>
               <input
@@ -299,7 +233,6 @@ export default function FeedbackPage() {
               />
             </div>
 
-            {/* End Date Filter */}
             <div>
               <label className="block mb-1 font-medium">End Date</label>
               <input
@@ -310,7 +243,6 @@ export default function FeedbackPage() {
               />
             </div>
 
-            {/* Minimum Rating Filter */}
             <div>
               <label className="block mb-1 font-medium">Minimum Rating</label>
               <select
@@ -327,7 +259,6 @@ export default function FeedbackPage() {
               </select>
             </div>
 
-            {/* Maximum Rating Filter */}
             <div>
               <label className="block mb-1 font-medium">Maximum Rating</label>
               <select
@@ -344,7 +275,6 @@ export default function FeedbackPage() {
               </select>
             </div>
 
-            {/* Anonymous Filter */}
             <div>
               <label className="block mb-1 font-medium">Anonymous</label>
               <select
@@ -358,7 +288,6 @@ export default function FeedbackPage() {
               </select>
             </div>
 
-            {/* Clear Filters Button */}
             <button
               onClick={() =>
                 setFilters({
@@ -380,23 +309,16 @@ export default function FeedbackPage() {
 
         {/* Main Content Area */}
         <div className="flex-1 p-6 overflow-y-auto">
-          {/* Submission Message */}
           {message && (
-            <p
-              className={`mb-4 text-center font-semibold ${
-                message.includes('successfully') ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
+            <p className={`mb-4 text-center font-semibold ${message.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
               {message}
             </p>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Submit Feedback Form */}
             <div className="bg-white shadow-md rounded-lg p-6">
               <h2 className="text-2xl font-bold mb-4">Submit Feedback</h2>
 
-              {/* Search bar for selecting the user */}
               <div className="mb-4">
                 <label className="block mb-2 font-medium">Search for a user to give feedback</label>
                 <input
@@ -429,16 +351,13 @@ export default function FeedbackPage() {
                 )}
               </div>
 
-              {/* Display selected user */}
               {selectedUser && (
                 <p className="mb-4">
                   Giving feedback to: <strong>{selectedUser.name}</strong>
                 </p>
               )}
 
-              {/* Feedback Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Topic Selection */}
                 <div>
                   <label className="block mb-2 font-medium">Topic</label>
                   <select
@@ -458,7 +377,6 @@ export default function FeedbackPage() {
                   </select>
                 </div>
 
-                {/* Rating Selection */}
                 <div>
                   <label className="block mb-2 font-medium">Rating</label>
                   <select
@@ -478,7 +396,6 @@ export default function FeedbackPage() {
                   </select>
                 </div>
 
-                {/* Comment Input */}
                 <div>
                   <label className="block mb-2 font-medium">Comment</label>
                   <textarea
@@ -491,7 +408,6 @@ export default function FeedbackPage() {
                   />
                 </div>
 
-                {/* Anonymous Submission */}
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -505,14 +421,12 @@ export default function FeedbackPage() {
                   </label>
                 </div>
 
-                {/* Submit Button */}
                 <button type="submit" className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800">
                   Submit Feedback
                 </button>
               </form>
             </div>
 
-            {/* Recent Feedback List */}
             <div className="bg-white shadow-md rounded-lg p-6">
               <h2 className="text-2xl font-bold mb-4">Recent Feedback</h2>
 

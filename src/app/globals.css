@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #ffffff; /* Background color */
+  --foreground: #171717; /* Text color */
 }
 
 /* @media (prefers-color-scheme: dark) {
@@ -25,7 +25,13 @@
     background: var(--background);
     font-family: Arial, Helvetica, sans-serif;
     transition: background-color 0.3s, color 0.3s; 
+    margin: 0; /* Remove default margin */
   }
+}
+
+nav {
+  background-color: var(--background); /* Ensure navbar background matches */
+  border-bottom: none; /* Remove any bottom border */
 }
 
 @layer utilities {
