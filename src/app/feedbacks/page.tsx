@@ -9,17 +9,13 @@ import { useState, useEffect } from 'react';
 interface Feedback {
   id: number;
   topicId: number;
-  topic: {
-    name: string;
-  };
+  topic: { name: string };
   rating: number;
   comment: string;
   toUserId: number;
   fromUserId?: number;
   created_at: string;
-  fromUser?: {
-    name: string | null;
-  };
+  fromUser?: { name: string | null };
 }
 
 interface User {
@@ -29,6 +25,11 @@ interface User {
 }
 
 interface Topic {
+  id: number;
+  name: string;
+}
+
+interface Course {
   id: number;
   name: string;
 }
@@ -60,7 +61,9 @@ export default function FeedbackPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [topics, setTopics] = useState<Topic[]>([]);
-
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+  
   const [filters, setFilters] = useState({
     keyword: '',
     startDate: '',
@@ -76,23 +79,25 @@ export default function FeedbackPage() {
     if (!session) router.push('/auth/login');
   }, [session, status, router]);
 
-  // Fetch topics
+  // Fetch topics and courses
   useEffect(() => {
-    const fetchTopics = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/topics');
-        const data: Topic[] = await res.json();
-        if (Array.isArray(data)) {
-          setTopics(data);
-        } else {
-          console.error('Expected an array of topics', data);
-        }
+        const [topicRes, courseRes] = await Promise.all([
+          fetch('/api/topics'),
+          fetch(`/api/users/${session?.user?.id}/courses`),
+        ]);
+        const topicsData: Topic[] = await topicRes.json();
+        const coursesData: Course[] = await courseRes.json();
+        
+        setTopics(topicsData);
+        setCourses(coursesData);
       } catch (error) {
-        console.error('Error fetching topics:', error);
+        console.error('Error fetching topics or courses:', error);
       }
     };
-    fetchTopics();
-  }, []);
+    fetchData();
+  }, [session]);
 
   // Fetch feedbacks with filters applied
   useEffect(() => {
@@ -102,7 +107,6 @@ export default function FeedbackPage() {
         try {
           const params = new URLSearchParams();
           params.append('to_user_id', session.user.id.toString());
-
           Object.entries(filters).forEach(([key, value]) => {
             if (value) params.append(key, value);
           });
@@ -120,13 +124,13 @@ export default function FeedbackPage() {
     }
   }, [session, filters]);
 
-  // Handle user search
+  // Handle user search within the selected course
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    if (query.length > 2) {
+    if (query.length > 2 && selectedCourseId) {
       setSearchLoading(true);
       try {
-        const res = await fetch(`/api/users?search=${encodeURIComponent(query)}`);
+        const res = await fetch(`/api/users?search=${encodeURIComponent(query)}&courseId=${selectedCourseId}`);
         const data: User[] = await res.json();
         setSearchResults(data);
       } catch (error) {
@@ -142,12 +146,10 @@ export default function FeedbackPage() {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!selectedUser) {
       alert('Please select a user to give feedback.');
       return;
     }
-
     const from_user_id = formData.anonymous ? undefined : session?.user?.id;
 
     try {
@@ -169,10 +171,6 @@ export default function FeedbackPage() {
         setSelectedUser(null);
         setSearchQuery('');
         setSearchResults([]);
-
-        const feedbackRes = await fetch(`/api/feedbacks?to_user_id=${session?.user?.id}`);
-        const data: Feedback[] = await feedbackRes.json();
-        setFeedbacks(Array.isArray(data) ? data : []);
       } else {
         const errorData = await res.json();
         setMessage(errorData.error || 'Failed to submit feedback. Please try again.');
@@ -190,6 +188,7 @@ export default function FeedbackPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
+        {/* Sidebar with Filters */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h2 className="text-xl font-bold mb-4">Filters</h2>
           <div className="space-y-4">
@@ -266,6 +265,7 @@ export default function FeedbackPage() {
           </div>
         </div>
 
+        {/* Main Content Area */}
         <div className="flex-1 p-6 overflow-y-auto">
           {message && (
             <p
@@ -280,6 +280,27 @@ export default function FeedbackPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white shadow-md rounded-lg p-6">
               <h2 className="text-2xl font-bold mb-4">Submit Feedback</h2>
+              <div className="mb-4">
+                <label className="block mb-2 font-medium">Select Course</label>
+                <select
+                  value={selectedCourseId}
+                  onChange={(e) => {
+                    setSelectedCourseId(e.target.value);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setSelectedUser(null);
+                  }}
+                  className="w-full border border-gray-300 p-2 rounded"
+                  required
+                >
+                  <option value="" disabled>Select a course</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id.toString()}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className="mb-4">
                 <label className="block mb-2 font-medium">Search for a user to give feedback</label>
@@ -289,6 +310,7 @@ export default function FeedbackPage() {
                   onChange={(e) => handleSearch(e.target.value)}
                   className="w-full border border-gray-300 p-2 rounded"
                   placeholder="Enter user name..."
+                  disabled={!selectedCourseId}
                 />
                 {searchLoading ? (
                   <div className="mt-2">Searching...</div>
@@ -328,9 +350,7 @@ export default function FeedbackPage() {
                     className="w-full border border-gray-300 p-2 rounded"
                     required
                   >
-                    <option value="" disabled>
-                      Select a topic
-                    </option>
+                    <option value="" disabled>Select a topic</option>
                     {topics.map((topic) => (
                       <option key={topic.id} value={topic.id}>
                         {topic.name}
@@ -347,9 +367,7 @@ export default function FeedbackPage() {
                     className="w-full border border-gray-300 p-2 rounded"
                     required
                   >
-                    <option value="" disabled>
-                      Select a rating
-                    </option>
+                    <option value="" disabled>Select a rating</option>
                     {[1, 2, 3, 4, 5].map((rating) => (
                       <option key={rating} value={rating}>
                         {rating}
