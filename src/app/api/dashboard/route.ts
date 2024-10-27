@@ -85,6 +85,7 @@ export async function GET(request: Request) {
           toUser: { name: feedback.toUser.name },
           topic: { name: feedback.topic.name },
           rating: feedback.rating,
+          comment: feedback.comment, // Ensure comment is included
           created_at: feedback.created_at,
         })),
       },

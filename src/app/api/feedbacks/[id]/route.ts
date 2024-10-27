@@ -22,41 +22,63 @@ export async function PUT(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { rating, topic } = await request.json();
+  const { rating, topic, comment } = await request.json();
 
-  if (rating === undefined || topic === undefined) {
-    return NextResponse.json({ error: 'Rating and Topic are required.' }, { status: 400 });
+  // Validate required fields
+  if (rating === undefined || topic === undefined || comment === undefined) {
+    return NextResponse.json({ error: 'Rating, Topic, and Comment are required.' }, { status: 400 });
+  }
+
+  // Validate rating
+  const ratingInt = parseInt(rating, 10);
+  if (isNaN(ratingInt) || ratingInt < 1 || ratingInt > 5) {
+    return NextResponse.json(
+      { error: 'Invalid rating. Rating must be between 1 and 5.' },
+      { status: 400 }
+    );
   }
 
   try {
+    const feedbackIdInt = parseInt(id, 10);
+    if (isNaN(feedbackIdInt)) {
+      return NextResponse.json({ error: 'Invalid feedback ID.' }, { status: 400 });
+    }
+
     const existingFeedback = await prisma.feedback.findUnique({
-      where: { id: Number(id) },
+      where: { id: feedbackIdInt },
     });
 
     if (!existingFeedback) {
       return NextResponse.json({ error: 'Feedback not found.' }, { status: 404 });
     }
 
-    // Convert session.user.id to a number and check if it matches fromUserId
+    // Ensure the user is the owner of the feedback
     if (existingFeedback.fromUserId !== Number(session.user.id)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Validate the topic exists or create it
     const topicRecord = await prisma.topic.upsert({
       where: { name: topic },
       update: {},
       create: { name: topic },
     });
 
-    const feedback = await prisma.feedback.update({
-      where: { id: Number(id) },
+    // Update the feedback with rating, topicId, and comment
+    const updatedFeedback = await prisma.feedback.update({
+      where: { id: feedbackIdInt },
       data: {
-        rating,
+        rating: ratingInt,
         topicId: topicRecord.id,
+        comment, // Update comment
+      },
+      include: {
+        toUser: { select: { name: true } },
+        topic: { select: { name: true } },
       },
     });
 
-    return NextResponse.json(feedback, { status: 200 });
+    return NextResponse.json(updatedFeedback, { status: 200 });
   } catch (error) {
     console.error('Error updating feedback:', error);
     return NextResponse.json({ error: 'Failed to update feedback.' }, { status: 500 });
@@ -77,21 +99,26 @@ export async function DELETE(
   }
 
   try {
+    const feedbackIdInt = parseInt(id, 10);
+    if (isNaN(feedbackIdInt)) {
+      return NextResponse.json({ error: 'Invalid feedback ID.' }, { status: 400 });
+    }
+
     const existingFeedback = await prisma.feedback.findUnique({
-      where: { id: Number(id) },
+      where: { id: feedbackIdInt },
     });
 
     if (!existingFeedback) {
       return NextResponse.json({ error: 'Feedback not found.' }, { status: 404 });
     }
 
-    // Convert session.user.id to a number and check if it matches fromUserId
+    // Ensure the user is the owner of the feedback
     if (existingFeedback.fromUserId !== Number(session.user.id)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     await prisma.feedback.delete({
-      where: { id: Number(id) },
+      where: { id: feedbackIdInt },
     });
 
     return NextResponse.json({ message: 'Feedback deleted successfully.' }, { status: 200 });

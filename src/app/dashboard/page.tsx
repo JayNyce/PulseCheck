@@ -1,4 +1,4 @@
-// File: src/app/dashboard/page.tsx
+// src/app/dashboard/page.tsx
 
 'use client';
 
@@ -13,7 +13,7 @@ import {
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 
@@ -39,6 +39,7 @@ interface Feedback {
   toUser: { name: string };
   topic: { name: string };
   rating: number;
+  comment: string; // Added comment field
   created_at: string;
 }
 
@@ -50,7 +51,7 @@ interface Course {
 
 const colorPalette = [
   '#3366cc', '#dc3912', '#ff9900', '#109618', '#990099',
-  '#0099c6', '#dd4477', '#66aa00', '#b82e2e', '#316395'
+  '#0099c6', '#dd4477', '#66aa00', '#b82e2e', '#316395',
 ];
 
 export default function DashboardPage() {
@@ -61,6 +62,7 @@ export default function DashboardPage() {
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
   const [editRating, setEditRating] = useState<number>(0);
   const [editTopic, setEditTopic] = useState<string>('');
+  const [editComment, setEditComment] = useState<string>(''); // Added state for editing comments
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -99,7 +101,7 @@ export default function DashboardPage() {
       datasets: [{
         data: values,
         backgroundColor: colors,
-      }]
+      }],
     };
   }, [dashboardData]);
 
@@ -113,7 +115,7 @@ export default function DashboardPage() {
       datasets: [{
         data: values,
         backgroundColor: colors,
-      }]
+      }],
     };
   }, [dashboardData]);
 
@@ -140,7 +142,7 @@ export default function DashboardPage() {
           ...prev.givenFeedback,
           totalGiven: prev.givenFeedback.totalGiven - 1,
           recentFeedbacks: prev.givenFeedback.recentFeedbacks.filter(fb => fb.id !== feedbackId),
-        }
+        },
       });
     } catch (error) {
       console.error('Error deleting feedback:', error);
@@ -153,6 +155,7 @@ export default function DashboardPage() {
     setEditingFeedback(feedback);
     setEditRating(feedback.rating);
     setEditTopic(feedback.topic.name);
+    setEditComment(feedback.comment); // Initialize comment state
   };
 
   // Submit Edited Feedback
@@ -162,7 +165,7 @@ export default function DashboardPage() {
       const res = await fetch(`/api/feedbacks/${editingFeedback.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating: editRating, topic: editTopic }),
+        body: JSON.stringify({ rating: editRating, topic: editTopic, comment: editComment }), // Include comment
       });
       if (!res.ok) throw new Error('Failed to update feedback');
       const updatedFeedback: Feedback = await res.json();
@@ -174,7 +177,7 @@ export default function DashboardPage() {
           recentFeedbacks: prev.givenFeedback.recentFeedbacks.map(fb =>
             fb.id === updatedFeedback.id ? updatedFeedback : fb
           ),
-        }
+        },
       });
       setEditingFeedback(null);
     } catch (error) {
@@ -232,7 +235,7 @@ export default function DashboardPage() {
                   },
                   title: {
                     display: false,
-                  }
+                  },
                 },
               }} 
             />
@@ -251,15 +254,15 @@ export default function DashboardPage() {
                     beginAtZero: true,
                     title: {
                       display: true,
-                      text: 'Number of Feedbacks'
-                    }
+                      text: 'Number of Feedbacks',
+                    },
                   },
                   x: {
                     title: {
                       display: true,
-                      text: 'Rating'
-                    }
-                  }
+                      text: 'Rating',
+                    },
+                  },
                 },
                 plugins: {
                   legend: {
@@ -267,7 +270,7 @@ export default function DashboardPage() {
                   },
                   title: {
                     display: false,
-                  }
+                  },
                 },
               }} 
             />
@@ -303,10 +306,10 @@ export default function DashboardPage() {
                       {new Date(feedback.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2">
-                      {feedback.toUser.name}
+                      {feedback.toUser?.name || 'Unknown Recipient'}
                     </td>
                     <td className="px-4 py-2">
-                      {feedback.topic.name}
+                      {feedback.topic?.name || 'Unknown Topic'}
                     </td>
                     <td className="px-4 py-2">
                       {feedback.rating}
@@ -364,6 +367,7 @@ export default function DashboardPage() {
           <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md">
             <h2 className="text-2xl font-semibold mb-4">Edit Feedback</h2>
             <form onSubmit={(e) => { e.preventDefault(); submitEdit(); }}>
+              {/* Rating Field */}
               <div className="mb-4">
                 <label className="block text-gray-700 mb-2">Rating:</label>
                 <input 
@@ -376,6 +380,7 @@ export default function DashboardPage() {
                   required
                 />
               </div>
+              {/* Topic Field */}
               <div className="mb-4">
                 <label className="block text-gray-700 mb-2">Topic:</label>
                 <input 
@@ -386,6 +391,18 @@ export default function DashboardPage() {
                   required
                 />
               </div>
+              {/* Comment Field */}
+              <div className="mb-4">
+                <label className="block text-gray-700 mb-2">Comment:</label>
+                <textarea 
+                  value={editComment} 
+                  onChange={(e) => setEditComment(e.target.value)}
+                  className="w-full px-3 py-2 border rounded" 
+                  rows={4} 
+                  required
+                />
+              </div>
+              {/* Modal Actions */}
               <div className="flex justify-end">
                 <button 
                   type="button" 
@@ -406,6 +423,5 @@ export default function DashboardPage() {
         </div>
       )}
     </div>
-  ) 
-
+  );
 }
