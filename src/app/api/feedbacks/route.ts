@@ -122,14 +122,17 @@ export async function POST(request: Request) {
 
     // Parse the JSON body from the request
     const body = await request.json();
-    const { topicId, rating, comment, to_user_id, from_user_id } = body;
+    const { topicId, rating, comment, to_user_id } = body;
+
+    // Ensure that the user ID of the authenticated user is set as the `fromUserId`
+    const fromUserId = parseInt(session.user.id, 10);
 
     // Validate required fields
     if (!topicId || !rating || !comment || !to_user_id) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
 
-    // Ensure the rating is a valid integer between 1 and 5
+    // Validate rating as an integer between 1 and 5
     const ratingInt = parseInt(rating);
     if (isNaN(ratingInt) || ratingInt < 1 || ratingInt > 5) {
       return NextResponse.json(
@@ -148,20 +151,6 @@ export async function POST(request: Request) {
     const topicIdInt = parseInt(topicId);
     if (isNaN(topicIdInt)) {
       return NextResponse.json({ error: 'Invalid topicId.' }, { status: 400 });
-    }
-
-    // Handle fromUserId (can be undefined if anonymous)
-    let fromUserId: number | undefined;
-    if (from_user_id !== undefined && from_user_id !== null) {
-      fromUserId = parseInt(from_user_id);
-      if (isNaN(fromUserId)) {
-        return NextResponse.json({ error: 'Invalid from_user_id.' }, { status: 400 });
-      }
-
-      // Ensure that the fromUserId matches the authenticated user's ID
-      if (fromUserId !== parseInt(session.user.id)) {
-        return NextResponse.json({ error: 'from_user_id does not match the authenticated user.' }, { status: 403 });
-      }
     }
 
     // Optional: Ensure that the toUser exists
