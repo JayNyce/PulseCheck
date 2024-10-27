@@ -5,12 +5,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function ResetPasswordPage({ params }: { params: { token: string } }) {
+// Define `PageProps` explicitly
+interface PageProps {
+  params: Record<string, any>; // Use Record to allow for any properties
+}
+
+export default function ResetPasswordPage({ params }: PageProps) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const router = useRouter();
-  const token = params.token;
+  const token = params.token; // This should still work as expected
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +36,6 @@ export default function ResetPasswordPage({ params }: { params: { token: string 
 
       if (res.ok) {
         setMessage('Password reset successful! Redirecting to login...');
-        // Redirect to login page after a delay
         setTimeout(() => {
           router.push('/auth/login');
         }, 2000);

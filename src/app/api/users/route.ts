@@ -2,32 +2,66 @@
 
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
-// GET Method: Search users based on a query
-export async function GET(request: Request) {
+export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const search = searchParams.get('search') || '';
+
   try {
-    const { searchParams } = new URL(request.url);
-    const searchQuery = searchParams.get('search') || '';
+    // Convert session.user.id to a number
+    const userId = parseInt(session.user.id, 10);
+    if (isNaN(userId)) {
+      return NextResponse.json({ error: 'Invalid user ID.' }, { status: 400 });
+    }
 
-    // Fetch users whose names match the search query
+    // Get the user's course IDs
+    const userCourses = await prisma.userCourse.findMany({
+      where: {
+        userId: userId,
+      },
+      select: {
+        courseId: true,
+      },
+    });
+
+    const courseIds = userCourses.map((uc) => uc.courseId);
+
+    // Find users who are in the same courses
     const users = await prisma.user.findMany({
       where: {
-        name: {
-          contains: searchQuery,
-          mode: 'insensitive',
+        id: {
+          not: userId, // Exclude current user
         },
+        userCourses: {
+          some: {
+            courseId: {
+              in: courseIds,
+            },
+          },
+        },
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ],
       },
       select: {
         id: true,
         name: true,
         email: true,
       },
-      take: 10, // Limit results
     });
 
-    return NextResponse.json(users || []);
+    return NextResponse.json(users);
   } catch (error) {
-    console.error('Error searching users:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error fetching users:', error);
+    return NextResponse.json({ error: 'Failed to fetch users.' }, { status: 500 });
   }
 }
