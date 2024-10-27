@@ -27,7 +27,10 @@ export async function GET(request: Request) {
       include: { topic: true },
     });
 
-    const averageRating = receivedFeedbacks.reduce((sum, feedback) => sum + feedback.rating, 0) / receivedFeedbacks.length;
+    const averageRating =
+      receivedFeedbacks.length > 0
+        ? receivedFeedbacks.reduce((sum, feedback) => sum + feedback.rating, 0) / receivedFeedbacks.length
+        : null;
 
     const topicDistribution = receivedFeedbacks.reduce((acc, feedback) => {
       acc[feedback.topic.name] = (acc[feedback.topic.name] || 0) + 1;
@@ -54,6 +57,21 @@ export async function GET(request: Request) {
       },
     });
 
+    // Fetch Courses Data
+    const courses = await prisma.course.findMany({
+      where: {
+        userCourses: {
+          some: {
+            userId: userId,
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
     const dashboardData = {
       receivedFeedback: {
         averageRating,
@@ -70,6 +88,7 @@ export async function GET(request: Request) {
           created_at: feedback.created_at,
         })),
       },
+      courses,
     };
 
     return NextResponse.json(dashboardData, { status: 200 });
