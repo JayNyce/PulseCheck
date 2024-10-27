@@ -23,7 +23,7 @@ interface Feedback {
 }
 
 interface User {
-  id: number; // Changed from string to number for consistency
+  id: number;
   name: string;
   email: string;
 }
@@ -94,7 +94,7 @@ export default function FeedbackPage() {
     fetchTopics();
   }, []);
 
-  // Fetch feedbacks
+  // Fetch feedbacks with filters applied
   useEffect(() => {
     if (session?.user?.id) {
       const fetchFeedbacks = async () => {
@@ -189,15 +189,64 @@ export default function FeedbackPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Main Content */}
       <div className="flex flex-1">
-        {/* Sidebar with Filters */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h2 className="text-xl font-bold mb-4">Filters</h2>
           <div className="space-y-4">
-            {/* Filters */}
-            {/* ... existing filter components ... */}
-            {/* Clear Filters Button */}
+            <input
+              type="text"
+              value={filters.keyword}
+              onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
+              placeholder="Keyword"
+              className="w-full border border-gray-300 p-2 rounded"
+            />
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+              className="w-full border border-gray-300 p-2 rounded"
+            />
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+              className="w-full border border-gray-300 p-2 rounded"
+            />
+            <input
+              type="number"
+              value={filters.minRating}
+              onChange={(e) => setFilters({ ...filters, minRating: e.target.value })}
+              placeholder="Min Rating"
+              className="w-full border border-gray-300 p-2 rounded"
+            />
+            <input
+              type="number"
+              value={filters.maxRating}
+              onChange={(e) => setFilters({ ...filters, maxRating: e.target.value })}
+              placeholder="Max Rating"
+              className="w-full border border-gray-300 p-2 rounded"
+            />
+            <select
+              value={filters.topic}
+              onChange={(e) => setFilters({ ...filters, topic: e.target.value })}
+              className="w-full border border-gray-300 p-2 rounded"
+            >
+              <option value="">All Topics</option>
+              {topics.map((topic) => (
+                <option key={topic.id} value={topic.id.toString()}>
+                  {topic.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filters.anonymous}
+              onChange={(e) => setFilters({ ...filters, anonymous: e.target.value })}
+              className="w-full border border-gray-300 p-2 rounded"
+            >
+              <option value="">All</option>
+              <option value="true">Anonymous</option>
+              <option value="false">Not Anonymous</option>
+            </select>
             <button
               onClick={() =>
                 setFilters({
@@ -217,7 +266,6 @@ export default function FeedbackPage() {
           </div>
         </div>
 
-        {/* Main Content Area */}
         <div className="flex-1 p-6 overflow-y-auto">
           {message && (
             <p
@@ -230,7 +278,6 @@ export default function FeedbackPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Submit Feedback Form */}
             <div className="bg-white shadow-md rounded-lg p-6">
               <h2 className="text-2xl font-bold mb-4">Submit Feedback</h2>
 
@@ -345,7 +392,6 @@ export default function FeedbackPage() {
               </form>
             </div>
 
-            {/* Recent Feedback */}
             <div className="bg-white shadow-md rounded-lg p-6">
               <h2 className="text-2xl font-bold mb-4">Recent Feedback</h2>
 
