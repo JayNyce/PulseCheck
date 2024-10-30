@@ -39,7 +39,7 @@ interface Feedback {
   toUser: { name: string };
   topic: { name: string };
   rating: number;
-  comment: string; // Added comment field
+  comment: string; 
   created_at: string;
 }
 
@@ -62,7 +62,7 @@ export default function DashboardPage() {
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
   const [editRating, setEditRating] = useState<number>(0);
   const [editTopic, setEditTopic] = useState<string>('');
-  const [editComment, setEditComment] = useState<string>(''); // Added state for editing comments
+  const [editComment, setEditComment] = useState<string>(''); 
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -155,7 +155,7 @@ export default function DashboardPage() {
     setEditingFeedback(feedback);
     setEditRating(feedback.rating);
     setEditTopic(feedback.topic.name);
-    setEditComment(feedback.comment); // Initialize comment state
+    setEditComment(feedback.comment); 
   };
 
   // Submit Edited Feedback
@@ -165,7 +165,7 @@ export default function DashboardPage() {
       const res = await fetch(`/api/feedbacks/${editingFeedback.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating: editRating, topic: editTopic, comment: editComment }), // Include comment
+        body: JSON.stringify({ rating: editRating, topic: editTopic, comment: editComment }), 
       });
       if (!res.ok) throw new Error('Failed to update feedback');
       const updatedFeedback: Feedback = await res.json();
