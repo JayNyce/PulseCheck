@@ -54,6 +54,7 @@ model Feedback {
 model Course {
   id          Int           @id @default(autoincrement())
   name        String        @unique
+  passKey     String?       
   userCourses UserCourse[]
 }
 

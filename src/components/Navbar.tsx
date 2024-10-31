@@ -17,7 +17,7 @@ export default function Navbar() {
                         alt="PulseCheck Logo"
                         width={40}
                         height={40}
-                        className="mr-2"
+                        className="mr-2 object-contain"
                     />
                     PulseCheck
                 </Link>
