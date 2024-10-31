@@ -210,7 +210,7 @@ export default function DashboardPage() {
       <h1 className="text-3xl font-bold mb-6 text-center">Your Feedback Dashboard</h1>
       
       {/* Dashboard Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         {/* Received Feedback Section */}
         <div className="bg-white p-6 rounded-lg shadow-md flex flex-col">
@@ -223,7 +223,7 @@ export default function DashboardPage() {
           
           {/* Topic Distribution Pie Chart */}
           <h3 className="text-xl font-semibold mb-2">Topic Distribution</h3>
-          <div className="h-64 mb-6">
+          <div className="w-full h-64 mb-6">
             <Pie 
               data={topicChartData} 
               options={{ 
@@ -238,12 +238,13 @@ export default function DashboardPage() {
                   },
                 },
               }} 
+              className="w-full h-full"
             />
           </div>
 
           {/* Rating Distribution Bar Chart */}
           <h3 className="text-xl font-semibold mb-2">Rating Distribution</h3>
-          <div className="h-64">
+          <div className="w-full h-64">
             <Bar 
               data={ratingChartData} 
               options={{ 
@@ -273,6 +274,7 @@ export default function DashboardPage() {
                   },
                 },
               }} 
+              className="w-full h-full"
             />
           </div>
         </div>

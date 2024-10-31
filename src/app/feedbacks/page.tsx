@@ -63,7 +63,7 @@ export default function FeedbackPage() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState('');
-  
+
   const [filters, setFilters] = useState({
     keyword: '',
     startDate: '',
@@ -82,16 +82,25 @@ export default function FeedbackPage() {
   // Fetch topics and courses
   useEffect(() => {
     const fetchData = async () => {
+      if (!session?.user?.id) return;
       try {
         const [topicRes, courseRes] = await Promise.all([
           fetch('/api/topics'),
-          fetch(`/api/users/${session?.user?.id}/courses`),
+          fetch(`/api/users/${session.user.id}/courses`),
         ]);
+
+        if (!topicRes.ok || !courseRes.ok) {
+          throw new Error('Failed to fetch topics or courses');
+        }
+
         const topicsData: Topic[] = await topicRes.json();
         const coursesData: Course[] = await courseRes.json();
-        
+
+        console.log('Fetched Topics:', topicsData);
+        console.log('Fetched Courses:', coursesData);
+
         setTopics(topicsData);
-        setCourses(coursesData);
+        setCourses(Array.isArray(coursesData) ? coursesData : []);
       } catch (error) {
         console.error('Error fetching topics or courses:', error);
       }
@@ -101,27 +110,30 @@ export default function FeedbackPage() {
 
   // Fetch feedbacks with filters applied
   useEffect(() => {
-    if (session?.user?.id) {
-      const fetchFeedbacks = async () => {
-        setLoading(true);
-        try {
-          const params = new URLSearchParams();
-          params.append('to_user_id', session.user.id.toString());
-          Object.entries(filters).forEach(([key, value]) => {
-            if (value) params.append(key, value);
-          });
+    if (!session?.user?.id) return;
 
-          const res = await fetch(`/api/feedbacks?${params.toString()}`);
-          const data: Feedback[] = await res.json();
-          setFeedbacks(Array.isArray(data) ? data : []);
-        } catch (error) {
-          console.error('Error fetching feedbacks:', error);
-        } finally {
-          setLoading(false);
+    const fetchFeedbacks = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.append('to_user_id', session.user.id.toString());
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) params.append(key, value);
+        });
+
+        const res = await fetch(`/api/feedbacks?${params.toString()}`);
+        if (!res.ok) {
+          throw new Error('Failed to fetch feedbacks');
         }
-      };
-      fetchFeedbacks();
-    }
+        const data: Feedback[] = await res.json();
+        setFeedbacks(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching feedbacks:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeedbacks();
   }, [session, filters]);
 
   // Handle user search within the selected course
@@ -130,9 +142,15 @@ export default function FeedbackPage() {
     if (query.length > 2 && selectedCourseId) {
       setSearchLoading(true);
       try {
-        const res = await fetch(`/api/users?search=${encodeURIComponent(query)}&courseId=${selectedCourseId}`);
+        const res = await fetch(
+          `/api/users?search=${encodeURIComponent(query)}&courseId=${selectedCourseId}`
+        );
+        if (!res.ok) {
+          throw new Error('Failed to search users');
+        }
         const data: User[] = await res.json();
-        setSearchResults(data);
+        setSearchResults(Array.isArray(data) ? data : []);
+        console.log('Search Results:', data);
       } catch (error) {
         console.error('Error searching users:', error);
       } finally {
@@ -187,9 +205,9 @@ export default function FeedbackPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col md:flex-row">
         {/* Sidebar with Filters */}
-        <div className="w-64 bg-white border-r border-gray-200 p-6">
+        <div className="w-full md:w-64 bg-white border-r border-gray-200 p-4 md:p-6">
           <h2 className="text-xl font-bold mb-4">Filters</h2>
           <div className="space-y-4">
             <input
@@ -266,7 +284,7 @@ export default function FeedbackPage() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-4 md:p-6 overflow-y-auto">
           {message && (
             <p
               className={`mb-4 text-center font-semibold ${
@@ -278,8 +296,10 @@ export default function FeedbackPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white shadow-md rounded-lg p-6">
+            {/* Submit Feedback Section */}
+            <div className="bg-white shadow-md rounded-lg p-4 md:p-6">
               <h2 className="text-2xl font-bold mb-4">Submit Feedback</h2>
+
               <div className="mb-4">
                 <label className="block mb-2 font-medium">Select Course</label>
                 <select
@@ -293,12 +313,20 @@ export default function FeedbackPage() {
                   className="w-full border border-gray-300 p-2 rounded"
                   required
                 >
-                  <option value="" disabled>Select a course</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id.toString()}>
-                      {course.name}
+                  <option value="" disabled>
+                    Select a course
+                  </option>
+                  {Array.isArray(courses) && courses.length > 0 ? (
+                    courses.map((course) => (
+                      <option key={course.id} value={course.id.toString()}>
+                        {course.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      No courses available.
                     </option>
-                  ))}
+                  )}
                 </select>
               </div>
 
@@ -323,6 +351,7 @@ export default function FeedbackPage() {
                           className="p-2 cursor-pointer hover:bg-gray-200"
                           onClick={() => {
                             setSelectedUser(user);
+                            setFormData({ ...formData, to_user_id: user.id.toString() });
                             setSearchQuery(user.name);
                             setSearchResults([]);
                           }}
@@ -350,9 +379,11 @@ export default function FeedbackPage() {
                     className="w-full border border-gray-300 p-2 rounded"
                     required
                   >
-                    <option value="" disabled>Select a topic</option>
+                    <option value="" disabled>
+                      Select a topic
+                    </option>
                     {topics.map((topic) => (
-                      <option key={topic.id} value={topic.id}>
+                      <option key={topic.id} value={topic.id.toString()}>
                         {topic.name}
                       </option>
                     ))}
@@ -367,9 +398,11 @@ export default function FeedbackPage() {
                     className="w-full border border-gray-300 p-2 rounded"
                     required
                   >
-                    <option value="" disabled>Select a rating</option>
+                    <option value="" disabled>
+                      Select a rating
+                    </option>
                     {[1, 2, 3, 4, 5].map((rating) => (
-                      <option key={rating} value={rating}>
+                      <option key={rating} value={rating.toString()}>
                         {rating}
                       </option>
                     ))}
@@ -403,14 +436,15 @@ export default function FeedbackPage() {
 
                 <button
                   type="submit"
-                  className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+                  className="w-full bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
                 >
                   Submit Feedback
                 </button>
               </form>
             </div>
 
-            <div className="bg-white shadow-md rounded-lg p-6">
+            {/* Recent Feedback Section */}
+            <div className="bg-white shadow-md rounded-lg p-4 md:p-6">
               <h2 className="text-2xl font-bold mb-4">Recent Feedback</h2>
 
               {loading ? (

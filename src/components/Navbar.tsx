@@ -4,22 +4,20 @@
 
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import Image from 'next/image'; // Import Image from next/image
+import Image from 'next/image';
 
 export default function Navbar() {
     const { data: session, status } = useSession();
-
     return (
         <nav className="bg-white shadow-md p-4">
             <div className="container mx-auto flex flex-wrap items-center justify-between">
                 <Link href="/" className="flex items-center text-xl font-bold">
-                    {/* Add the logo image here */}
                     <Image
-                        src="/assets/images/icon.png" // Adjust the path to your image
+                        src="/assets/images/icon.png"
                         alt="PulseCheck Logo"
-                        width={40} // Set the width for the logo
-                        height={40} // Set the height for the logo
-                        className="mr-2" // Margin to the right for spacing
+                        width={40}
+                        height={40}
+                        className="mr-2"
                     />
                     PulseCheck
                 </Link>
