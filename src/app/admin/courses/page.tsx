@@ -22,6 +22,7 @@ export default function AdminCoursesPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // States for editing
+  //these are actually the states for editing
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editCourseName, setEditCourseName] = useState('');
   const [editCoursePassKey, setEditCoursePassKey] = useState('');
