@@ -12,30 +12,48 @@ export default function Navbar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const feedbackDropdownRef = useRef<HTMLDivElement>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close Feedback dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutsideFeedback = (event: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        feedbackDropdownRef.current &&
+        !feedbackDropdownRef.current.contains(event.target as Node)
       ) {
         setIsFeedbackOpen(false);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutsideFeedback);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutsideFeedback);
     };
   }, []);
 
-  // Close mobile menu and feedback dropdown when navigating
+  // Close User menu dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutsideUserMenu = (event: MouseEvent) => {
+      if (
+        userDropdownRef.current &&
+        !userDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideUserMenu);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideUserMenu);
+    };
+  }, []);
+
+  // Close mobile menu and dropdowns when navigating
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsFeedbackOpen(false);
+    setIsUserMenuOpen(false);
   }, [pathname]);
 
   return (
@@ -94,7 +112,7 @@ export default function Navbar() {
           }`}
           id="mobile-menu"
         >
-          <div className="flex flex-col lg:flex-row lg:space-x-4 mt-4 lg:mt-0">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:space-x-4 mt-4 lg:mt-0">
             {/* Dashboard Link */}
             <Link
               href="/dashboard"
@@ -106,7 +124,7 @@ export default function Navbar() {
             </Link>
 
             {/* Feedback Dropdown */}
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative" ref={feedbackDropdownRef}>
               <button
                 onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
                 className={`text-white hover:bg-gray-700 px-3 py-2 rounded flex items-center focus:outline-none ${
@@ -184,18 +202,37 @@ export default function Navbar() {
           </div>
 
           {/* User Authentication Links */}
-          <div className="flex flex-col lg:flex-row lg:space-x-4 mt-4 lg:mt-0">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:ml-auto mt-4 lg:mt-0 relative">
             {status === 'loading' ? null : session ? (
               <>
-                <span className="text-white mr-4 hidden lg:inline">
-                  Hello, {session.user.name}
-                </span>
-                <button
-                  onClick={() => signOut()}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded mt-2 lg:mt-0"
-                >
-                  Sign Out
-                </button>
+                <div className="relative" ref={userDropdownRef}>
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="text-white flex items-center focus:outline-none px-3 py-2 hover:bg-gray-700 rounded"
+                  >
+                    {session.user.name}
+                    {/* Dropdown Arrow Icon */}
+                    <svg
+                      className="ml-1 h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-red-500 text-white rounded-md shadow-lg z-20">
+                      <button
+                        onClick={() => signOut()}
+                        className="block px-4 py-2 hover:bg-red-600 w-full text-left"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <Link
