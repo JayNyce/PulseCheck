@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import AsyncSelect from 'react-select/async';
 
 interface Topic {
   id: number;
@@ -21,15 +22,18 @@ interface User {
   email: string;
 }
 
+interface OptionType {
+  value: number;
+  label: string;
+}
+
 export default function SubmitFeedbackPage() {
   const { data: session, status } = useSession();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [selectedCourseId, setSelectedCourseId] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
+  const [defaultOptions, setDefaultOptions] = useState<OptionType[]>([]);
+  const [selectedUser, setSelectedUser] = useState<OptionType | null>(null);
   const [formData, setFormData] = useState({
     topicId: '',
     rating: '',
@@ -67,30 +71,56 @@ export default function SubmitFeedbackPage() {
         setCourses(Array.isArray(coursesData) ? coursesData : []);
       } catch (error) {
         console.error('Error fetching topics or courses:', error);
+        setMessage('Failed to load topics or courses.');
       }
     };
     fetchData();
   }, [session]);
 
-  // Handle user search within the selected course
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    if (query.length > 2 && selectedCourseId) {
-      setSearchLoading(true);
-      try {
-        const res = await fetch(
-          `/api/users?search=${encodeURIComponent(query)}&courseId=${selectedCourseId}`
-        );
-        if (!res.ok) throw new Error('Failed to search users');
-        const data: User[] = await res.json();
-        setSearchResults(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Error searching users:', error);
-      } finally {
-        setSearchLoading(false);
+  // Fetch default options when course is selected
+  useEffect(() => {
+    const fetchDefaultOptions = async () => {
+      if (!selectedCourseId) {
+        setDefaultOptions([]);
+        return;
       }
-    } else {
-      setSearchResults([]);
+      try {
+        const res = await fetch(`/api/users?courseId=${selectedCourseId}&limit=100`);
+        if (!res.ok) throw new Error('Failed to fetch users');
+        const data: User[] = await res.json();
+        const options = data.map((user) => ({
+          value: user.id,
+          label: `${user.name} (${user.email})`,
+        }));
+        setDefaultOptions(options);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setMessage('Failed to fetch users.');
+      }
+    };
+    fetchDefaultOptions();
+  }, [selectedCourseId]);
+
+  // Updated loadOptions function
+  const loadOptions = async (inputValue: string): Promise<OptionType[]> => {
+    if (!selectedCourseId) {
+      return [];
+    }
+    try {
+      const res = await fetch(
+        `/api/users?search=${encodeURIComponent(inputValue)}&courseId=${selectedCourseId}&limit=100`
+      );
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const data: User[] = await res.json();
+      const options = data.map((user) => ({
+        value: user.id,
+        label: `${user.name} (${user.email})`,
+      }));
+      return options;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setMessage('Failed to fetch users.');
+      return [];
     }
   };
 
@@ -107,10 +137,10 @@ export default function SubmitFeedbackPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topicId: parseInt(formData.topicId),
-          rating: parseInt(formData.rating),
+          topicId: parseInt(formData.topicId, 10),
+          rating: parseInt(formData.rating, 10),
           comment: formData.comment,
-          to_user_id: selectedUser.id,
+          to_user_id: selectedUser.value,
           anonymous: formData.anonymous,
         }),
       });
@@ -119,8 +149,7 @@ export default function SubmitFeedbackPage() {
         setMessage('Feedback submitted successfully!');
         setFormData({ topicId: '', rating: '', comment: '', anonymous: false });
         setSelectedUser(null);
-        setSearchQuery('');
-        setSearchResults([]);
+        setDefaultOptions([]);
       } else {
         const errorData = await res.json();
         setMessage(errorData.error || 'Failed to submit feedback. Please try again.');
@@ -150,12 +179,12 @@ export default function SubmitFeedbackPage() {
       <div className="mb-4">
         <label className="block mb-2 font-medium">Select Course</label>
         <select
-          value={selectedCourseId}
+          value={selectedCourseId !== null ? selectedCourseId.toString() : ''}
           onChange={(e) => {
-            setSelectedCourseId(e.target.value);
-            setSearchQuery('');
-            setSearchResults([]);
+            const value = e.target.value;
+            setSelectedCourseId(value ? parseInt(value, 10) : null);
             setSelectedUser(null);
+            setDefaultOptions([]);
           }}
           className="w-full border border-gray-300 p-2 rounded"
           required
@@ -165,7 +194,7 @@ export default function SubmitFeedbackPage() {
           </option>
           {courses.length > 0 ? (
             courses.map((course) => (
-              <option key={course.id} value={course.id.toString()}>
+              <option key={course.id} value={course.id}>
                 {course.name}
               </option>
             ))
@@ -179,41 +208,23 @@ export default function SubmitFeedbackPage() {
 
       <div className="mb-4">
         <label className="block mb-2 font-medium">Search for a user to give feedback</label>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
-          className="w-full border border-gray-300 p-2 rounded"
-          placeholder="Enter user name..."
-          disabled={!selectedCourseId}
+        <AsyncSelect
+          isClearable
+          cacheOptions
+          defaultOptions={defaultOptions}
+          loadOptions={loadOptions}
+          onChange={(option) => setSelectedUser(option)}
+          value={selectedUser}
+          placeholder={!selectedCourseId ? 'Select a course first' : 'Search or browse users...'}
+          isDisabled={!selectedCourseId}
+          className="react-select-container"
+          classNamePrefix="react-select"
         />
-        {searchLoading ? (
-          <div className="mt-2">Searching...</div>
-        ) : (
-          searchResults.length > 0 && (
-            <ul className="bg-white border border-gray-300 mt-2 max-h-40 overflow-y-auto">
-              {searchResults.map((user) => (
-                <li
-                  key={user.id}
-                  className="p-2 cursor-pointer hover:bg-gray-200"
-                  onClick={() => {
-                    setSelectedUser(user);
-                    // Removed 'to_user_id' from formData
-                    setSearchQuery(user.name);
-                    setSearchResults([]);
-                  }}
-                >
-                  {user.name} ({user.email})
-                </li>
-              ))}
-            </ul>
-          )
-        )}
       </div>
 
       {selectedUser && (
         <p className="mb-4">
-          Giving feedback to: <strong>{selectedUser.name}</strong>
+          Giving feedback to: <strong>{selectedUser.label}</strong>
         </p>
       )}
 
