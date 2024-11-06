@@ -2,10 +2,11 @@
 
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next'; // Correct import path
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import crypto from 'crypto'; // Ensure crypto is imported
 
+// GET: Fetch all courses
 export async function GET() {
   try {
     const courses = await prisma.course.findMany();
@@ -16,6 +17,7 @@ export async function GET() {
   }
 }
 
+// POST: Create a new course (Admin Only)
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
 
@@ -32,17 +34,14 @@ export async function POST(req: Request) {
   // Validate passKey if provided
   let finalPassKey = passKey?.trim();
   if (finalPassKey) {
-    if (finalPassKey.length > 6) {
-      return NextResponse.json({ error: 'PassKey must be at most 6 characters long.' }, { status: 400 });
+    if (finalPassKey.length < 3) {
+      return NextResponse.json({ error: 'PassKey must be at least 3 characters.' }, { status: 400 });
     }
 
     // Optional: Add format validations if necessary
-    // Example: Only alphanumeric characters
     if (!/^[a-zA-Z0-9]+$/.test(finalPassKey)) {
       return NextResponse.json({ error: 'PassKey must be alphanumeric.' }, { status: 400 });
     }
-
-    // Since passKey is not unique, no need to check for existing passKeys
   } else {
     // Optionally generate a passKey if desired, without ensuring uniqueness
     finalPassKey = crypto.randomBytes(3).toString('hex'); // Generates a 6-character hex code
