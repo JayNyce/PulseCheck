@@ -41,6 +41,9 @@ export default function SubmitFeedbackPage() {
     anonymous: false,
   });
   const [message, setMessage] = useState('');
+  const [isLoadingTopics, setIsLoadingTopics] = useState(false);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -50,40 +53,61 @@ export default function SubmitFeedbackPage() {
     }
   }, [session, status]);
 
-  // Fetch topics and courses
+  // Fetch courses the user is enrolled in
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCourses = async () => {
       if (!session?.user?.id) return;
+      setIsLoadingCourses(true);
       try {
-        const [topicRes, courseRes] = await Promise.all([
-          fetch('/api/topics'),
-          fetch(`/api/users/${session.user.id}/courses`),
-        ]);
-
-        if (!topicRes.ok || !courseRes.ok) {
-          throw new Error('Failed to fetch topics or courses');
-        }
-
-        const topicsData: Topic[] = await topicRes.json();
-        const coursesData: Course[] = await courseRes.json();
-
-        setTopics(topicsData);
-        setCourses(Array.isArray(coursesData) ? coursesData : []);
-      } catch (error) {
-        console.error('Error fetching topics or courses:', error);
-        setMessage('Failed to load topics or courses.');
+        const res = await fetch(`/api/users/${session.user.id}/courses`);
+        if (!res.ok) throw new Error('Failed to fetch courses');
+        const coursesData: Course[] = await res.json();
+        setCourses(coursesData);
+      } catch (error: any) {
+        console.error('Error fetching courses:', error);
+        setMessage(error.message || 'Failed to load courses.');
+      } finally {
+        setIsLoadingCourses(false);
       }
     };
-    fetchData();
+    fetchCourses();
   }, [session]);
 
-  // Fetch default options when course is selected
+  // Fetch topics based on selected course
+  useEffect(() => {
+    const fetchTopics = async () => {
+      if (!selectedCourseId) {
+        setTopics([]);
+        setFormData((prev) => ({ ...prev, topicId: '' }));
+        return;
+      }
+      setIsLoadingTopics(true);
+      try {
+        const res = await fetch(`/api/courses/${selectedCourseId}/topics`);
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to fetch topics');
+        }
+        const topicsData: Topic[] = await res.json();
+        setTopics(topicsData);
+      } catch (error: any) {
+        console.error('Error fetching topics:', error);
+        setMessage(error.message || 'Failed to load topics.');
+      } finally {
+        setIsLoadingTopics(false);
+      }
+    };
+    fetchTopics();
+  }, [selectedCourseId]);
+
+  // Fetch default user options based on selected course
   useEffect(() => {
     const fetchDefaultOptions = async () => {
       if (!selectedCourseId) {
         setDefaultOptions([]);
         return;
       }
+      setIsLoadingUsers(true);
       try {
         const res = await fetch(`/api/users?courseId=${selectedCourseId}&limit=100`);
         if (!res.ok) throw new Error('Failed to fetch users');
@@ -93,15 +117,17 @@ export default function SubmitFeedbackPage() {
           label: `${user.name} (${user.email})`,
         }));
         setDefaultOptions(options);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching users:', error);
-        setMessage('Failed to fetch users.');
+        setMessage(error.message || 'Failed to fetch users.');
+      } finally {
+        setIsLoadingUsers(false);
       }
     };
     fetchDefaultOptions();
   }, [selectedCourseId]);
 
-  // Updated loadOptions function
+  // Load options for AsyncSelect based on search input and selected course
   const loadOptions = async (inputValue: string): Promise<OptionType[]> => {
     if (!selectedCourseId) {
       return [];
@@ -117,9 +143,9 @@ export default function SubmitFeedbackPage() {
         label: `${user.name} (${user.email})`,
       }));
       return options;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching users:', error);
-      setMessage('Failed to fetch users.');
+      setMessage(error.message || 'Failed to fetch users.');
       return [];
     }
   };
@@ -129,6 +155,11 @@ export default function SubmitFeedbackPage() {
     e.preventDefault();
     if (!selectedUser) {
       alert('Please select a user to give feedback.');
+      return;
+    }
+
+    if (!formData.topicId || !formData.rating || !formData.comment) {
+      alert('Please fill in all required fields.');
       return;
     }
 
@@ -150,11 +181,12 @@ export default function SubmitFeedbackPage() {
         setFormData({ topicId: '', rating: '', comment: '', anonymous: false });
         setSelectedUser(null);
         setDefaultOptions([]);
+        setTopics([]);
       } else {
         const errorData = await res.json();
         setMessage(errorData.error || 'Failed to submit feedback. Please try again.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting feedback:', error);
       setMessage('An error occurred. Please try again.');
     } finally {
@@ -176,36 +208,40 @@ export default function SubmitFeedbackPage() {
         </p>
       )}
 
+      {/* Course Selection */}
       <div className="mb-4">
         <label className="block mb-2 font-medium">Select Course</label>
-        <select
-          value={selectedCourseId !== null ? selectedCourseId.toString() : ''}
-          onChange={(e) => {
-            const value = e.target.value;
-            setSelectedCourseId(value ? parseInt(value, 10) : null);
-            setSelectedUser(null);
-            setDefaultOptions([]);
-          }}
-          className="w-full border border-gray-300 p-2 rounded"
-          required
-        >
-          <option value="" disabled>
-            Select a course
-          </option>
-          {courses.length > 0 ? (
-            courses.map((course) => (
+        {isLoadingCourses ? (
+          <p>Loading courses...</p>
+        ) : courses.length > 0 ? (
+          <select
+            value={selectedCourseId !== null ? selectedCourseId.toString() : ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSelectedCourseId(value ? parseInt(value, 10) : null);
+              setSelectedUser(null);
+              setDefaultOptions([]);
+              setTopics([]);
+              setFormData({ ...formData, topicId: '' });
+            }}
+            className="w-full border border-gray-300 p-2 rounded"
+            required
+          >
+            <option value="" disabled>
+              Select a course
+            </option>
+            {courses.map((course) => (
               <option key={course.id} value={course.id}>
                 {course.name}
               </option>
-            ))
-          ) : (
-            <option value="" disabled>
-              No courses available.
-            </option>
-          )}
-        </select>
+            ))}
+          </select>
+        ) : (
+          <p>You are not enrolled in any courses.</p>
+        )}
       </div>
 
+      {/* User Selection */}
       <div className="mb-4">
         <label className="block mb-2 font-medium">Search for a user to give feedback</label>
         <AsyncSelect
@@ -216,10 +252,11 @@ export default function SubmitFeedbackPage() {
           onChange={(option) => setSelectedUser(option)}
           value={selectedUser}
           placeholder={!selectedCourseId ? 'Select a course first' : 'Search or browse users...'}
-          isDisabled={!selectedCourseId}
+          isDisabled={!selectedCourseId || isLoadingUsers}
           className="react-select-container"
           classNamePrefix="react-select"
         />
+        {isLoadingUsers && <p className="mt-2">Loading users...</p>}
       </div>
 
       {selectedUser && (
@@ -228,25 +265,34 @@ export default function SubmitFeedbackPage() {
         </p>
       )}
 
+      {/* Feedback Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Topic */}
         <div>
           <label className="block mb-2 font-medium">Topic</label>
-          <select
-            value={formData.topicId}
-            onChange={(e) => setFormData({ ...formData, topicId: e.target.value })}
-            className="w-full border border-gray-300 p-2 rounded"
-            required
-          >
-            <option value="" disabled>
-              Select a topic
-            </option>
-            {topics.map((topic) => (
-              <option key={topic.id} value={topic.id.toString()}>
-                {topic.name}
+          {isLoadingTopics ? (
+            <p>Loading topics...</p>
+          ) : topics.length > 0 ? (
+            <select
+              value={formData.topicId}
+              onChange={(e) => setFormData({ ...formData, topicId: e.target.value })}
+              className="w-full border border-gray-300 p-2 rounded"
+              required
+            >
+              <option value="" disabled>
+                Select a topic
               </option>
-            ))}
-          </select>
+              {topics.map((topic) => (
+                <option key={topic.id} value={topic.id.toString()}>
+                  {topic.name}
+                </option>
+              ))}
+            </select>
+          ) : selectedCourseId ? (
+            <p>No topics available for this course.</p>
+          ) : (
+            <p>Please select a course first.</p>
+          )}
         </div>
 
         {/* Rating */}
@@ -300,8 +346,9 @@ export default function SubmitFeedbackPage() {
         <button
           type="submit"
           className="w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+          disabled={isLoadingTopics || isLoadingUsers}
         >
-          Submit Feedback
+          {isLoadingTopics || isLoadingUsers ? 'Submitting...' : 'Submit Feedback'}
         </button>
       </form>
     </div>

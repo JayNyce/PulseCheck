@@ -5,13 +5,15 @@ import NextAuth, { DefaultSession, DefaultUser, DefaultJWT } from 'next-auth';
 declare module 'next-auth' {
   interface User extends DefaultUser {
     id: string;
-    isAdmin: boolean; // Added isAdmin to User interface
+    isAdmin: boolean;
+    isInstructor: boolean; 
   }
 
   interface Session extends DefaultSession {
     user: {
       id: string;
-      isAdmin: boolean; // Added isAdmin to Session's user
+      isAdmin: boolean;
+      isInstructor: boolean; 
       name?: string | null;
       email?: string | null;
     } & DefaultSession['user'];
@@ -19,6 +21,7 @@ declare module 'next-auth' {
 
   interface JWT extends DefaultJWT {
     id: string;
-    isAdmin: boolean; // Added isAdmin to JWT interface
+    isAdmin: boolean;
+    isInstructor: boolean; 
   }
 }

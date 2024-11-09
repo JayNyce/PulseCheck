@@ -1,8 +1,15 @@
+// src/app/api/topics/route.ts
+
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth'; // Fixed import
+import { authOptions } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
+
+interface TopicPayload {
+  name: string;
+  courseId: number;
+}
 
 /**
  * GET Method: Fetch all predefined topics for the authenticated user
@@ -19,10 +26,11 @@ export async function GET(request: Request) {
       );
     }
 
-    // Optionally, you can implement further authorization here
+    // Optionally, implement further authorization here
 
     const topics = await prisma.topic.findMany({
       orderBy: { name: 'asc' },
+      include: { course: { select: { id: true, name: true } } },
     });
     return NextResponse.json(topics);
   } catch (error) {
@@ -53,26 +61,49 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name } = await request.json();
+    const { name, courseId } = (await request.json()) as TopicPayload;
 
-    // Validate the topic name
-    if (!name || typeof name !== 'string' || name.trim() === '') {
+    // Validate the topic name and courseId
+    if (
+      !name ||
+      typeof name !== 'string' ||
+      name.trim() === '' ||
+      !courseId ||
+      typeof courseId !== 'number'
+    ) {
       return NextResponse.json(
-        { error: 'Topic name is required and must be a non-empty string.' },
+        { error: 'Topic name and valid courseId are required.' },
         { status: 400 }
       );
     }
 
     const trimmedName = name.trim();
 
-    // Check if the topic already exists
+    // Check if the course exists
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      return NextResponse.json(
+        { error: 'Associated course does not exist.' },
+        { status: 404 }
+      );
+    }
+
+    // Check if the topic already exists within the course
     const existingTopic = await prisma.topic.findUnique({
-      where: { name: trimmedName },
+      where: {
+        name_courseId: {
+          name: trimmedName,
+          courseId: courseId,
+        },
+      },
     });
 
     if (existingTopic) {
       return NextResponse.json(
-        { error: 'Topic name already exists.' },
+        { error: 'Topic name already exists for this course.' },
         { status: 409 }
       );
     }
@@ -81,16 +112,17 @@ export async function POST(request: Request) {
     const topic = await prisma.topic.create({
       data: {
         name: trimmedName,
+        courseId: courseId,
       },
     });
 
     return NextResponse.json(topic, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      // Handle unique constraint violation (e.g., duplicate topic name)
+      // Handle unique constraint violation
       if (error.code === 'P2002') {
         return NextResponse.json(
-          { error: 'Topic name already exists.' },
+          { error: 'Topic name already exists for this course.' },
           { status: 409 }
         );
       }

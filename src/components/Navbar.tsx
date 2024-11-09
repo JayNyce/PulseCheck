@@ -188,12 +188,24 @@ export default function Navbar() {
               Courses
             </Link>
 
-            {/* Admin Dashboard Link (Visible Only to Admins) */}
+            {/* Instructor Dashboard Link */}
+            {session?.user?.isInstructor && (
+              <Link
+                href="/instructor"
+                className={`text-white hover:bg-gray-700 px-3 py-2 rounded ${
+                  pathname.startsWith('/instructor') ? 'bg-gray-700 font-semibold' : ''
+                }`}
+              >
+                Instructor Dashboard
+              </Link>
+            )}
+
+            {/* Admin Dashboard Link */}
             {session?.user?.isAdmin && (
               <Link
                 href="/admin"
                 className={`text-white hover:bg-gray-700 px-3 py-2 rounded ${
-                  pathname === '/admin' ? 'bg-gray-700 font-semibold' : ''
+                  pathname.startsWith('/admin') ? 'bg-gray-700 font-semibold' : ''
                 }`}
               >
                 Admin Dashboard
