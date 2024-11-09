@@ -35,13 +35,14 @@ export async function GET(request: Request, { params }: { params: Params }) {
       return NextResponse.json({ error: 'Invalid course ID.' }, { status: 400 });
     }
 
-    // Fetch the course without verifying ownership
+    // Fetch the course including the instructorId for ownership verification
     const course = await prisma.course.findUnique({
       where: { id: parsedCourseId },
       select: {
         id: true,
         name: true,
         passKey: true,
+        instructorId: true, // Include instructorId for ownership check
         topics: {
           select: { id: true, name: true },
         },
@@ -52,7 +53,19 @@ export async function GET(request: Request, { params }: { params: Params }) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    return NextResponse.json(course, { status: 200 });
+    // Verify ownership
+    const instructorId = parseInt(session.user.id, 10);
+    if (course.instructorId !== instructorId) {
+      return NextResponse.json(
+        { error: 'Access denied. You do not own this course.' },
+        { status: 403 }
+      );
+    }
+
+    // Create a new object excluding 'instructorId'
+    const { instructorId: _, ...courseData } = course;
+
+    return NextResponse.json(courseData, { status: 200 });
   } catch (error) {
     console.error('Error fetching course:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -88,13 +101,27 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       );
     }
 
-    // Fetch the course without verifying ownership
+    // Fetch the course including instructorId for ownership verification
     const existingCourse = await prisma.course.findUnique({
       where: { id: parsedCourseId },
+      select: {
+        id: true,
+        instructorId: true,
+        name: true,
+      },
     });
 
     if (!existingCourse) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
+    }
+
+    // Verify ownership
+    const instructorId = parseInt(session.user.id, 10);
+    if (existingCourse.instructorId !== instructorId) {
+      return NextResponse.json(
+        { error: 'Access denied. You do not own this course.' },
+        { status: 403 }
+      );
     }
 
     const updateData: Prisma.CourseUpdateInput = {};
@@ -122,7 +149,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     }
 
     // If name is being updated, check for duplicates
-    if (name) {
+    if (name && name.trim() !== existingCourse.name) {
       const duplicateCourse = await prisma.course.findUnique({
         where: { name: name.trim() },
       });
@@ -145,7 +172,10 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       },
     });
 
-    return NextResponse.json(updatedCourse, { status: 200 });
+    // Exclude 'instructorId' from the response
+    const { instructorId: _, ...updatedCourseData } = updatedCourse;
+
+    return NextResponse.json(updatedCourseData, { status: 200 });
   } catch (error: any) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002') {
@@ -178,21 +208,32 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
       return NextResponse.json({ error: 'Invalid course ID.' }, { status: 400 });
     }
 
-    // Fetch the course without verifying ownership
+    // Fetch the course including instructorId for ownership verification
     const existingCourse = await prisma.course.findUnique({
       where: { id: parsedCourseId },
-      include: {
-        userCourses: true,
+      select: {
+        id: true,
+        instructorId: true,
         topics: {
           include: {
             feedbacks: true,
           },
         },
+        userCourses: true,
       },
     });
 
     if (!existingCourse) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
+    }
+
+    // Verify ownership
+    const instructorId = parseInt(session.user.id, 10);
+    if (existingCourse.instructorId !== instructorId) {
+      return NextResponse.json(
+        { error: 'Access denied. You do not own this course.' },
+        { status: 403 }
+      );
     }
 
     // Begin transaction to delete related records
