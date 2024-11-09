@@ -26,7 +26,7 @@ export async function DELETE(
   const parsedCourseId = parseInt(courseId, 10);
   const parsedUserId = parseInt(userId, 10);
 
-  if (isNaN(parsedCourseId) || isNaN(parsedUserId)) {
+  if (isNaN(parsedCourseId) || isNaN(parsedUserId)) { 
     return NextResponse.json(
       { error: 'Invalid course ID or user ID.' },
       { status: 400 }

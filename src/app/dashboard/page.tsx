@@ -14,6 +14,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  ChartOptions,
 } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 
@@ -27,6 +28,7 @@ interface DashboardData {
     topicDistribution: Record<string, number>;
     ratingDistribution: Record<string, number>;
   };
+<<<<<<< HEAD
   givenFeedback: {
     totalGiven: number;
     recentFeedbacks: Feedback[];
@@ -47,6 +49,8 @@ interface Course {
   id: number;
   name: string;
   description: string;
+=======
+>>>>>>> main
 }
 
 const colorPalette = [
@@ -59,15 +63,20 @@ export default function DashboardPage() {
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
   const [editRating, setEditRating] = useState<number>(0);
   const [editTopic, setEditTopic] = useState<string>('');
   const [editComment, setEditComment] = useState<string>(''); 
+=======
+>>>>>>> main
 
   // Redirect to login if not authenticated
   useEffect(() => {
     if (status === 'loading') return;
-    if (!session) router.push('/auth/login');
+    if (!session) {
+      router.push('/auth/login');
+    }
   }, [session, status, router]);
 
   // Fetch dashboard data from API
@@ -75,7 +84,7 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       try {
         const res = await fetch('/api/dashboard');
-        if (!res.ok) throw new Error('Failed to fetch data');
+        if (!res.ok) throw new Error('Failed to fetch dashboard data');
         const data: DashboardData = await res.json();
         setDashboardData(data);
       } catch (error) {
@@ -88,9 +97,9 @@ export default function DashboardPage() {
     if (session?.user?.id) {
       fetchDashboardData();
     }
-  }, [session]);
+  }, [session?.user?.id]);
 
-  // Prepare chart data
+  // Prepare Pie Chart Data
   const topicChartData = useMemo(() => {
     if (!dashboardData) return { labels: [], datasets: [] };
     const labels = Object.keys(dashboardData.receivedFeedback.topicDistribution);
@@ -105,6 +114,7 @@ export default function DashboardPage() {
     };
   }, [dashboardData]);
 
+  // Prepare Bar Chart Data
   const ratingChartData = useMemo(() => {
     if (!dashboardData) return { labels: [], datasets: [] };
     const labels = Object.keys(dashboardData.receivedFeedback.ratingDistribution);
@@ -113,13 +123,14 @@ export default function DashboardPage() {
     return {
       labels,
       datasets: [{
+        label: 'Number of Feedbacks',
         data: values,
         backgroundColor: colors,
       }],
     };
   }, [dashboardData]);
 
-  // Calculate average rating
+  // Calculate Average Rating
   const averageRating = useMemo(() => {
     if (!dashboardData) return 'N/A';
     return typeof dashboardData.receivedFeedback.averageRating === 'number'
@@ -127,29 +138,25 @@ export default function DashboardPage() {
       : 'N/A';
   }, [dashboardData]);
 
-  // Handle Delete Feedback
-  const handleDelete = async (feedbackId: number) => {
-    if (!confirm('Are you sure you want to delete this feedback?')) return;
-    try {
-      const res = await fetch(`/api/feedbacks/${feedbackId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to delete feedback');
-      // Update local state
-      setDashboardData((prev) => prev && {
-        ...prev,
-        givenFeedback: {
-          ...prev.givenFeedback,
-          totalGiven: prev.givenFeedback.totalGiven - 1,
-          recentFeedbacks: prev.givenFeedback.recentFeedbacks.filter(fb => fb.id !== feedbackId),
-        },
-      });
-    } catch (error) {
-      console.error('Error deleting feedback:', error);
-      alert('Failed to delete feedback.');
-    }
-  };
+  // Chart Options
+  const pieChartOptions: ChartOptions<'pie'> = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 1000, // 1 second
+      easing: 'easeOutQuart' as const, // Explicitly typed
+    },
+    plugins: {
+      legend: {
+        position: 'right',
+      },
+      title: {
+        display: false,
+      },
+    },
+  }), []);
 
+<<<<<<< HEAD
   // Handle Edit Feedback
   const handleEdit = (feedback: Feedback) => {
     setEditingFeedback(feedback);
@@ -177,14 +184,39 @@ export default function DashboardPage() {
           recentFeedbacks: prev.givenFeedback.recentFeedbacks.map(fb =>
             fb.id === updatedFeedback.id ? updatedFeedback : fb
           ),
+=======
+  const barChartOptions: ChartOptions<'bar'> = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 1000, // 1 second
+      easing: 'easeOutQuart' as const, // Explicitly typed
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Number of Feedbacks',
+>>>>>>> main
         },
-      });
-      setEditingFeedback(null);
-    } catch (error) {
-      console.error('Error updating feedback:', error);
-      alert('Failed to update feedback.');
-    }
-  };
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Rating',
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false, // Hide legend for bar chart
+      },
+      title: {
+        display: false,
+      },
+    },
+  }), []);
 
   if (loading) {
     return (
@@ -202,226 +234,49 @@ export default function DashboardPage() {
     );
   }
 
-  const { receivedFeedback, givenFeedback, courses } = dashboardData;
+  const { receivedFeedback } = dashboardData;
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-100 p-4 md:p-8 flex flex-col">
       {/* Dashboard Title */}
       <h1 className="text-3xl font-bold mb-6 text-center">Your Feedback Dashboard</h1>
-      
-      {/* Dashboard Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Received Feedback Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md flex flex-col">
-          <h2 className="text-2xl font-semibold mb-4">Feedback Received</h2>
-          
-          {/* Display Average Rating */}
-          <p className="text-lg mb-4">
-            Average Rating: <span className="font-bold">{averageRating}</span>
+
+      {/* Average Rating */}
+      <div className="bg-white p-6 rounded-lg shadow-md flex items-center justify-center mb-8">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Average Rating</h2>
+          <p className="text-4xl font-bold">
+            {averageRating !== 'N/A' ? averageRating : 'N/A'}
           </p>
-          
-          {/* Topic Distribution Pie Chart */}
-          <h3 className="text-xl font-semibold mb-2">Topic Distribution</h3>
-          <div className="h-64 mb-6">
-            <Pie 
-              data={topicChartData} 
-              options={{ 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'right',
-                  },
-                  title: {
-                    display: false,
-                  },
-                },
-              }} 
-            />
-          </div>
-
-          {/* Rating Distribution Bar Chart */}
-          <h3 className="text-xl font-semibold mb-2">Rating Distribution</h3>
-          <div className="h-64">
-            <Bar 
-              data={ratingChartData} 
-              options={{ 
-                responsive: true, 
-                maintainAspectRatio: false,
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    title: {
-                      display: true,
-                      text: 'Number of Feedbacks',
-                    },
-                  },
-                  x: {
-                    title: {
-                      display: true,
-                      text: 'Rating',
-                    },
-                  },
-                },
-                plugins: {
-                  legend: {
-                    display: false, // Hide legend for bar chart
-                  },
-                  title: {
-                    display: false,
-                  },
-                },
-              }} 
-            />
-          </div>
-        </div>
-
-        {/* Given Feedback Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md lg:col-span-2 flex flex-col">
-          <h2 className="text-2xl font-semibold mb-4">Feedback Given</h2>
-          
-          {/* Display Total Feedbacks Given */}
-          <p className="text-lg mb-4">
-            Total Feedbacks Given: <span className="font-bold">{givenFeedback.totalGiven}</span>
-          </p>
-
-          {/* Recent Feedbacks Table */}
-          <h3 className="text-xl font-semibold mb-2">Recent Feedbacks</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full table-auto">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="px-4 py-2 text-left">Date</th>
-                  <th className="px-4 py-2 text-left">Recipient</th>
-                  <th className="px-4 py-2 text-left">Topic</th>
-                  <th className="px-4 py-2 text-left">Rating</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {givenFeedback.recentFeedbacks.map((feedback) => (
-                  <tr key={feedback.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-2">
-                      {new Date(feedback.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2">
-                      {feedback.toUser?.name || 'Unknown Recipient'}
-                    </td>
-                    <td className="px-4 py-2">
-                      {feedback.topic?.name || 'Unknown Topic'}
-                    </td>
-                    <td className="px-4 py-2">
-                      {feedback.rating}
-                    </td>
-                    <td className="px-4 py-2">
-                      <button 
-                        className="mr-2 px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                        onClick={() => handleEdit(feedback)}
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                        onClick={() => handleDelete(feedback.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Courses/Groups Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md lg:col-span-3 flex flex-col">
-          <h2 className="text-2xl font-semibold mb-4">Your Courses</h2>
-          
-          {/* Courses List */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {Array.isArray(courses) && courses.length > 0 ? (
-              courses.map((course) => (
-                <div key={course.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow duration-300 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold mb-2">{course.name}</h3>
-                    <p className="text-gray-600">{course.description}</p>
-                  </div>
-                  {/* Optional: Add action buttons here */}
-                  {/* <button className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                    View Details
-                  </button> */}
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600">You are not enrolled in any courses.</p>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Edit Feedback Modal */}
-      {editingFeedback && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md">
-            <h2 className="text-2xl font-semibold mb-4">Edit Feedback</h2>
-            <form onSubmit={(e) => { e.preventDefault(); submitEdit(); }}>
-              {/* Rating Field */}
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Rating:</label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  max="5" 
-                  value={editRating} 
-                  onChange={(e) => setEditRating(Number(e.target.value))}
-                  className="w-full px-3 py-2 border rounded"
-                  required
-                />
-              </div>
-              {/* Topic Field */}
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Topic:</label>
-                <input 
-                  type="text" 
-                  value={editTopic} 
-                  onChange={(e) => setEditTopic(e.target.value)}
-                  className="w-full px-3 py-2 border rounded"
-                  required
-                />
-              </div>
-              {/* Comment Field */}
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Comment:</label>
-                <textarea 
-                  value={editComment} 
-                  onChange={(e) => setEditComment(e.target.value)}
-                  className="w-full px-3 py-2 border rounded" 
-                  rows={4} 
-                  required
-                />
-              </div>
-              {/* Modal Actions */}
-              <div className="flex justify-end">
-                <button 
-                  type="button" 
-                  className="mr-4 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-                  onClick={() => setEditingFeedback(null)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow">
+        {/* Topic Distribution Pie Chart */}
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-2xl font-semibold mb-4">Topic Distribution</h2>
+          <div className="w-full h-64">
+            <Pie 
+              data={topicChartData} 
+              options={pieChartOptions} 
+              className="w-full h-full"
+            />
           </div>
         </div>
-      )}
+
+        {/* Rating Distribution Bar Chart */}
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-2xl font-semibold mb-4">Rating Distribution</h2>
+          <div className="w-full h-64">
+            <Bar 
+              data={ratingChartData} 
+              options={barChartOptions} 
+              className="w-full h-full"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
