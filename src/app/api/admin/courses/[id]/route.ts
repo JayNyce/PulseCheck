@@ -1,4 +1,4 @@
-// src/app/api/instructor/courses/[courseId]/route.ts
+// src/app/api/admin/courses/[id]/route.ts
 
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
@@ -6,100 +6,42 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
 
-// Define the structure of the request payload for updating a course
 interface CourseUpdatePayload {
   name?: string;
   passKey?: string | null;
+  instructorId?: string; // Change to string to match User.id as string
 }
 
-// Define the structure of route parameters
 interface Params {
-  courseId: string;
+  id: string;
 }
 
-/**
- * GET Method: Fetch a specific course (Instructor only)
- */
-export async function GET(request: Request, { params }: { params: Params }) {
-  const { courseId } = params;
-  const session = await getServerSession(authOptions);
-
-  // Check if the user is authenticated and is an instructor
-  if (!session || !session.user.isInstructor) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  try {
-    const parsedCourseId = parseInt(courseId, 10);
-    if (isNaN(parsedCourseId)) {
-      return NextResponse.json({ error: 'Invalid course ID.' }, { status: 400 });
-    }
-
-    // Fetch the course without verifying ownership
-    const course = await prisma.course.findUnique({
-      where: { id: parsedCourseId },
-      select: {
-        id: true,
-        name: true,
-        passKey: true,
-        topics: {
-          select: { id: true, name: true },
-        },
-      },
-    });
-
-    if (!course) {
-      return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
-    }
-
-    return NextResponse.json(course, { status: 200 });
-  } catch (error) {
-    console.error('Error fetching course:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
-
-/**
- * PATCH Method: Update a course (Instructor only)
- */
 export async function PATCH(request: Request, { params }: { params: Params }) {
-  const { courseId } = params;
+  const { id } = params;
   const session = await getServerSession(authOptions);
 
-  // Check if the user is authenticated and is an instructor
-  if (!session || !session.user.isInstructor) {
+  // Check if the user is authenticated and is an admin
+  if (!session || !session.user.isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const parsedCourseId = parseInt(courseId, 10);
-    if (isNaN(parsedCourseId)) {
+    const courseId = parseInt(id, 10);
+    if (isNaN(courseId)) {
       return NextResponse.json({ error: 'Invalid course ID.' }, { status: 400 });
     }
 
-    // Parse the request body
-    const { name, passKey } = (await request.json()) as CourseUpdatePayload;
+    const { name, passKey, instructorId } = (await request.json()) as CourseUpdatePayload;
 
-    // Ensure at least one field is provided for update
-    if (!name && passKey === undefined) {
+    if (!name && passKey === undefined && instructorId === undefined) {
       return NextResponse.json(
-        { error: 'At least one field (name or passKey) is required for update.' },
+        { error: 'At least one field (name, passKey, or instructorId) is required for update.' },
         { status: 400 }
       );
     }
 
-    // Fetch the course without verifying ownership
-    const existingCourse = await prisma.course.findUnique({
-      where: { id: parsedCourseId },
-    });
-
-    if (!existingCourse) {
-      return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
-    }
-
     const updateData: Prisma.CourseUpdateInput = {};
 
-    // Validate and set the course name if provided
     if (name) {
       if (typeof name !== 'string' || name.trim() === '') {
         return NextResponse.json(
@@ -110,7 +52,6 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       updateData.name = name.trim();
     }
 
-    // Validate and set the passKey if provided
     if (passKey !== undefined) {
       if (passKey && !/^[a-zA-Z0-9]{0,6}$/.test(passKey.trim())) {
         return NextResponse.json(
@@ -121,12 +62,56 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       updateData.passKey = passKey ? passKey.trim() : null;
     }
 
+    if (instructorId !== undefined) {
+      if (typeof instructorId !== 'string' || instructorId.trim() === '') {
+        return NextResponse.json(
+          { error: 'Valid instructorId is required.' },
+          { status: 400 }
+        );
+      }
+
+      // Convert instructorId from string to number
+      const instructorIdNumber = parseInt(instructorId, 10);
+      if (isNaN(instructorIdNumber)) {
+        return NextResponse.json(
+          { error: 'Instructor ID must be a valid number.' },
+          { status: 400 }
+        );
+      }
+
+      // Verify instructor exists and is an instructor
+      const instructor = await prisma.user.findUnique({
+        where: { id: instructorIdNumber },
+      });
+
+      if (!instructor || !instructor.isInstructor) {
+        return NextResponse.json(
+          { error: 'Instructor does not exist or is not an instructor.' },
+          { status: 404 }
+        );
+      }
+
+      // Correct way to update a relation in Prisma
+      updateData.instructor = {
+        connect: { id: instructorIdNumber },
+      };
+    }
+
+    // Check if course exists
+    const existingCourse = await prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!existingCourse) {
+      return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
+    }
+
     // If name is being updated, check for duplicates
     if (name) {
       const duplicateCourse = await prisma.course.findUnique({
         where: { name: name.trim() },
       });
-      if (duplicateCourse && duplicateCourse.id !== parsedCourseId) {
+      if (duplicateCourse && duplicateCourse.id !== courseId) {
         return NextResponse.json(
           { error: 'Another course with the same name already exists.' },
           { status: 409 }
@@ -136,9 +121,12 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 
     // Update the course
     const updatedCourse = await prisma.course.update({
-      where: { id: parsedCourseId },
+      where: { id: courseId },
       data: updateData,
-      include: {
+      include: { // Include relations in the response
+        instructor: {
+          select: { id: true, name: true, email: true },
+        },
         topics: {
           select: { id: true, name: true },
         },
@@ -161,26 +149,26 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 }
 
 /**
- * DELETE Method: Delete a course along with related data (Instructor only)
+ * DELETE Method: Delete a course (Admin only)
  */
 export async function DELETE(request: Request, { params }: { params: Params }) {
-  const { courseId } = params;
+  const { id } = params;
   const session = await getServerSession(authOptions);
 
-  // Check if the user is authenticated and is an instructor
-  if (!session || !session.user.isInstructor) {
+  // Check if the user is authenticated and is an admin
+  if (!session || !session.user.isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const parsedCourseId = parseInt(courseId, 10);
-    if (isNaN(parsedCourseId)) {
+    const courseId = parseInt(id, 10);
+    if (isNaN(courseId)) {
       return NextResponse.json({ error: 'Invalid course ID.' }, { status: 400 });
     }
 
-    // Fetch the course without verifying ownership
+    // Check if course exists
     const existingCourse = await prisma.course.findUnique({
-      where: { id: parsedCourseId },
+      where: { id: courseId },
       include: {
         userCourses: true,
         topics: {
@@ -209,7 +197,7 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
         // Delete Topics associated with the course
         await prisma.topic.deleteMany({
           where: {
-            courseId: parsedCourseId,
+            courseId: courseId,
           },
         });
       }
@@ -217,22 +205,22 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
       // Delete UserCourse associations
       await prisma.userCourse.deleteMany({
         where: {
-          courseId: parsedCourseId,
+          courseId: courseId,
         },
       });
 
       // Finally, delete the course
       await prisma.course.delete({
-        where: { id: parsedCourseId },
+        where: { id: courseId },
       });
     });
 
     return NextResponse.json({ message: 'Course deleted successfully.' }, { status: 200 });
   } catch (error: any) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      // Foreign key constraint violation or other Prisma-specific errors
+      // Handle any Prisma-specific errors if necessary
       return NextResponse.json(
-        { error: 'Cannot delete this course for security purposes.' },
+        { error: 'Cannot delete this course due to existing dependencies.' },
         { status: 403 }
       );
     }

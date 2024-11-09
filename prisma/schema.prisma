@@ -61,11 +61,13 @@ model Course {
   id           Int           @id @default(autoincrement())
   name         String        @unique
   passKey      String?
-  instructorId Int           // Now required
+  instructorId Int
   instructor   User          @relation("InstructorCourses", fields: [instructorId], references: [id])
   userCourses  UserCourse[]
   topics       Topic[]
+  isDeleted    Boolean       @default(false)
 }
+
 
 model UserCourse {
   userId   Int
