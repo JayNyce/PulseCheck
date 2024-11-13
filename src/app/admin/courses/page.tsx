@@ -39,6 +39,11 @@ export default function ManageCourses() {
   const [error, setError] = useState<string>('');
 
   // States for editing
+<<<<<<< HEAD
+  //these are actually the states for editing
+  //these are actually the states for editing
+=======
+>>>>>>> 4fc09b562af52f7d54e3e2e8d7a8850d86d9e2d4
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editCourseName, setEditCourseName] = useState('');
   const [editCoursePassKey, setEditCoursePassKey] = useState('');
