@@ -28,6 +28,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
+      Hello! Lets Create an account!
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-8 shadow-md rounded-md">
         <h1 className="text-2xl font-bold">Login</h1>
         <input
