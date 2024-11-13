@@ -1,4 +1,4 @@
-// schema.prisma
+// prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -18,17 +18,23 @@ model User {
   resetPasswordToken       String?
   resetPasswordTokenExpiry DateTime?
   isAdmin                  Boolean       @default(false)
+  isInstructor             Boolean       @default(false)
 
   // Relations
   feedbacksGiven    Feedback[]   @relation("FeedbackFromUser")
   feedbacksReceived Feedback[]   @relation("FeedbackToUser")
   userCourses       UserCourse[]
+  createdCourses    Course[]     @relation("InstructorCourses")
 }
 
 model Topic {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
+  id        Int      @id @default(autoincrement())
+  name      String
+  courseId  Int      // Now required
+  course    Course   @relation(fields: [courseId], references: [id])
   feedbacks Feedback[]
+
+  @@unique([name, courseId])
 }
 
 model Feedback {
@@ -52,11 +58,16 @@ model Feedback {
 }
 
 model Course {
-  id          Int           @id @default(autoincrement())
-  name        String        @unique
-  passKey     String?       
-  userCourses UserCourse[]
+  id           Int           @id @default(autoincrement())
+  name         String        @unique
+  passKey      String?
+  instructorId Int
+  instructor   User          @relation("InstructorCourses", fields: [instructorId], references: [id])
+  userCourses  UserCourse[]
+  topics       Topic[]
+  isDeleted    Boolean       @default(false)
 }
+
 
 model UserCourse {
   userId   Int

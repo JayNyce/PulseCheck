@@ -39,13 +39,13 @@ export default function AdminDashboard() {
         <div className="space-y-2">
           <button
             onClick={() => router.push('/admin/topics')}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
             Manage Topics
           </button>
           <button
             onClick={() => router.push('/admin/courses')}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
             Manage Courses
           </button>

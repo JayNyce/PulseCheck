@@ -6,25 +6,28 @@ import { NextResponse } from 'next/server';
 export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl;
+    const token = req.nextauth.token;
 
-    // Allow the following paths without authentication
+    // Allow public paths
     if (
       pathname.startsWith('/api/auth') ||
       pathname.startsWith('/auth/login') ||
-      pathname.startsWith('/auth/error') ||
-      pathname === '/' // Home page
+      pathname === '/'
     ) {
       return NextResponse.next();
     }
 
-    // Protect the admin route
+    // Protect admin routes
     if (pathname.startsWith('/admin')) {
-      const token = req.nextauth.token;
-
       if (!token || !token.isAdmin) {
-        const url = req.nextUrl.clone();
-        url.pathname = '/dashboard'; // Redirect to dashboard if not admin
-        return NextResponse.redirect(url);
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+    }
+
+    // Protect instructor routes
+    if (pathname.startsWith('/instructor')) {
+      if (!token || !token.isInstructor) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
       }
     }
 
@@ -38,5 +41,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/instructor/:path*'],
 };

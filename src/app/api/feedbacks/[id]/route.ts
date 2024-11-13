@@ -18,11 +18,16 @@ export async function PUT(
 
   const session = await getServerSession(authOptions);
 
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { rating, topic, comment } = await request.json();
+  const { rating, topic, comment, anonymous } = await request.json();
+
+  // Validate 'anonymous' flag
+  if (typeof anonymous !== 'boolean') {
+    return NextResponse.json({ error: 'Invalid anonymous flag.' }, { status: 400 });
+  }
 
   // Validate required fields
   if (rating === undefined || topic === undefined || comment === undefined) {
@@ -46,6 +51,7 @@ export async function PUT(
 
     const existingFeedback = await prisma.feedback.findUnique({
       where: { id: feedbackIdInt },
+      include: { topic: true },
     });
 
     if (!existingFeedback) {
@@ -53,33 +59,56 @@ export async function PUT(
     }
 
     // Ensure the user is the owner of the feedback
-    if (existingFeedback.fromUserId !== Number(session.user.id)) {
+    const userId = typeof session.user.id === 'number' ? session.user.id : parseInt(session.user.id, 10);
+    if (existingFeedback.fromUserId !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Validate the topic exists or create it
+    // Retrieve the courseId from the existing feedback's topic
+    const courseId = existingFeedback.topic.courseId;
+
+    // Validate the topic exists or create it with the associated courseId
     const topicRecord = await prisma.topic.upsert({
-      where: { name: topic },
+      where: {
+        name_courseId: {
+          name: topic.trim(),
+          courseId: courseId,
+        },
+      },
       update: {},
-      create: { name: topic },
+      create: { name: topic.trim(), courseId: courseId },
     });
 
-    // Update the feedback with rating, topicId, and comment
+    // Determine fromUserId based on the anonymous flag
+    const fromUserId = anonymous
+      ? null
+      : userId;
+
+    // Update the feedback with rating, topicId, comment, and fromUserId
     const updatedFeedback = await prisma.feedback.update({
       where: { id: feedbackIdInt },
       data: {
         rating: ratingInt,
         topicId: topicRecord.id,
-        comment, // Update comment
+        comment,
+        fromUserId,
       },
       include: {
-        toUser: { select: { name: true } },
-        topic: { select: { name: true } },
+        fromUser: {
+          select: {
+            name: true,
+          },
+        },
+        topic: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
     return NextResponse.json(updatedFeedback, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating feedback:', error);
     return NextResponse.json({ error: 'Failed to update feedback.' }, { status: 500 });
   }
@@ -94,7 +123,7 @@ export async function DELETE(
 
   const session = await getServerSession(authOptions);
 
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -113,7 +142,8 @@ export async function DELETE(
     }
 
     // Ensure the user is the owner of the feedback
-    if (existingFeedback.fromUserId !== Number(session.user.id)) {
+    const userId = typeof session.user.id === 'number' ? session.user.id : parseInt(session.user.id, 10);
+    if (existingFeedback.fromUserId !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

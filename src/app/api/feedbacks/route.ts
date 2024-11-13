@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = parseInt(session.user.id);
+    const userId = typeof session.user.id === 'number' ? session.user.id : parseInt(session.user.id, 10);
     
     // Validate the user ID
     if (isNaN(userId)) {
@@ -122,10 +122,17 @@ export async function POST(request: Request) {
 
     // Parse the JSON body from the request
     const body = await request.json();
-    const { topicId, rating, comment, to_user_id } = body;
+    const { topicId, rating, comment, to_user_id, anonymous } = body;
 
-    // Ensure that the user ID of the authenticated user is set as the `fromUserId`
-    const fromUserId = parseInt(session.user.id, 10);
+    // Validate 'anonymous' flag
+    if (typeof anonymous !== 'boolean') {
+      return NextResponse.json({ error: 'Invalid anonymous flag.' }, { status: 400 });
+    }
+
+    // Ensure that the user ID of the authenticated user is set as the `fromUserId` if not anonymous
+    const fromUserId = anonymous 
+      ? null 
+      : (typeof session.user.id === 'number' ? session.user.id : parseInt(session.user.id, 10));
 
     // Validate required fields
     if (!topicId || !rating || !comment || !to_user_id) {
@@ -153,7 +160,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid topicId.' }, { status: 400 });
     }
 
-    // Optional: Ensure that the toUser exists
+    // Ensure that the recipient user exists
     const toUser = await prisma.user.findUnique({
       where: { id: toUserId },
     });
@@ -162,7 +169,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'The user to give feedback to does not exist.' }, { status: 404 });
     }
 
-    // Optional: Ensure that the topic exists
+    // Ensure that the topic exists
     const topic = await prisma.topic.findUnique({
       where: { id: topicIdInt },
     });
@@ -196,8 +203,11 @@ export async function POST(request: Request) {
 
     // Return the newly created feedback as a JSON response
     return NextResponse.json(feedback, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error submitting feedback:', error);
-    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Failed to submit feedback.' },
+      { status: 500 }
+    );
   }
 }

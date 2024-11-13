@@ -1,13 +1,11 @@
 // src/lib/auth.ts
 
-import { AuthOptions, SessionStrategy } from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
-export const authOptions: AuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -40,12 +38,13 @@ export const authOptions: AuthOptions = {
             throw new Error('Invalid email or password');
           }
 
-          // Return user object with isAdmin
+          // Return user object with id as string
           return {
-            id: user.id.toString(),
+            id: user.id.toString(), // Convert integer id to string
             name: user.name,
             email: user.email,
             isAdmin: user.isAdmin,
+            isInstructor: user.isInstructor,
           };
         } catch (error) {
           console.error('Error in authorize function:', error);
@@ -56,20 +55,22 @@ export const authOptions: AuthOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   session: {
-    strategy: 'jwt' as SessionStrategy,
+    strategy: 'jwt',
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id; // Ensure 'user.id' is a string
-        token.isAdmin = user.isAdmin; // Include isAdmin in JWT
+        token.id = user.id; // id is a string
+        token.isAdmin = user.isAdmin;
+        token.isInstructor = user.isInstructor;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string; // Ensure 'token.id' is a string
-        session.user.isAdmin = token.isAdmin as boolean; // Include isAdmin in session
+      if (session.user) {
+        session.user.id = token.id as string; // id is a string
+        session.user.isAdmin = token.isAdmin as boolean;
+        session.user.isInstructor = token.isInstructor as boolean;
       }
       return session;
     },
