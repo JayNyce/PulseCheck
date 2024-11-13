@@ -28,29 +28,6 @@ interface DashboardData {
     topicDistribution: Record<string, number>;
     ratingDistribution: Record<string, number>;
   };
-<<<<<<< HEAD
-  givenFeedback: {
-    totalGiven: number;
-    recentFeedbacks: Feedback[];
-  };
-  courses: Course[];
-}
-
-interface Feedback {
-  id: number;
-  toUser: { name: string };
-  topic: { name: string };
-  rating: number;
-  comment: string; 
-  created_at: string;
-}
-
-interface Course {
-  id: number;
-  name: string;
-  description: string;
-=======
->>>>>>> main
 }
 
 const colorPalette = [
@@ -63,13 +40,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
-  const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
-  const [editRating, setEditRating] = useState<number>(0);
-  const [editTopic, setEditTopic] = useState<string>('');
-  const [editComment, setEditComment] = useState<string>(''); 
-=======
->>>>>>> main
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -156,35 +126,6 @@ export default function DashboardPage() {
     },
   }), []);
 
-<<<<<<< HEAD
-  // Handle Edit Feedback
-  const handleEdit = (feedback: Feedback) => {
-    setEditingFeedback(feedback);
-    setEditRating(feedback.rating);
-    setEditTopic(feedback.topic.name);
-    setEditComment(feedback.comment); 
-  };
-
-  // Submit Edited Feedback
-  const submitEdit = async () => {
-    if (!editingFeedback) return;
-    try {
-      const res = await fetch(`/api/feedbacks/${editingFeedback.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating: editRating, topic: editTopic, comment: editComment }), 
-      });
-      if (!res.ok) throw new Error('Failed to update feedback');
-      const updatedFeedback: Feedback = await res.json();
-      // Update local state
-      setDashboardData((prev) => prev && {
-        ...prev,
-        givenFeedback: {
-          ...prev.givenFeedback,
-          recentFeedbacks: prev.givenFeedback.recentFeedbacks.map(fb =>
-            fb.id === updatedFeedback.id ? updatedFeedback : fb
-          ),
-=======
   const barChartOptions: ChartOptions<'bar'> = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -198,7 +139,6 @@ export default function DashboardPage() {
         title: {
           display: true,
           text: 'Number of Feedbacks',
->>>>>>> main
         },
       },
       x: {
