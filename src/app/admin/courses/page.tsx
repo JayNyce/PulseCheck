@@ -2,130 +2,122 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 interface Course {
   id: number;
   name: string;
-  passKey?: string | null;
-  instructor: {
-    id: number;
-    name: string;
-    email: string;
-  } | null; // Allow instructor to be null
-  topics: {
-    id: number;
-    name: string;
-  }[];
+  passKey: string | null;
 }
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
-export default function ManageCourses() {
+export default function AdminCoursesPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [form, setForm] = useState<{ name: string; passKey?: string; instructorId: number }>({
-    name: '',
-    passKey: '',
-    instructorId: 0,
-  });
-  const [error, setError] = useState<string>('');
+  const [newCourseName, setNewCourseName] = useState('');
+  const [newCoursePassKey, setNewCoursePassKey] = useState('');
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // States for editing
-<<<<<<< HEAD
   //these are actually the states for editing
-  //these are actually the states for editing
-=======
->>>>>>> 4fc09b562af52f7d54e3e2e8d7a8850d86d9e2d4
+  
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editCourseName, setEditCourseName] = useState('');
   const [editCoursePassKey, setEditCoursePassKey] = useState('');
-  const [editInstructorId, setEditInstructorId] = useState<number>(0);
 
-  // Fetch courses and instructors on mount
+  // Redirect if not authenticated or not admin
   useEffect(() => {
-    const fetchData = async () => {
+    if (status === 'loading') return;
+    if (!session) router.push('/auth/login');
+    else if (!session.user.isAdmin) router.push('/dashboard');
+  }, [session, status, router]);
+
+  // Fetch courses
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setIsLoading(true);
       try {
-        const [coursesRes, usersRes] = await Promise.all([
-          fetch('/api/admin/courses'),
-          fetch('/api/admin/users?isInstructor=true'), // Ensure this endpoint filters instructors correctly
-        ]);
-
-        if (!coursesRes.ok || !usersRes.ok) {
-          throw new Error('Failed to fetch data');
-        }
-
-        const coursesData: Course[] = await coursesRes.json();
-        const usersData: User[] = await usersRes.json();
-
-        setCourses(coursesData);
-        setUsers(usersData);
-      } catch (err: any) {
-        setError(err.message || 'An error occurred');
+        const res = await fetch('/api/courses');
+        if (!res.ok) throw new Error('Failed to fetch courses.');
+        const data: Course[] = await res.json();
+        setCourses(data);
+      } catch (error) {
+        console.error(error);
+        setMessage('Failed to load courses.');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-
-    fetchData();
+    fetchCourses();
   }, []);
 
-  // Handle form submission to create a new course
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!form.name || form.instructorId === 0) {
-      setError('Please provide both name and instructor.');
+  // Add new course
+  const handleAddCourse = async () => {
+    if (!newCourseName.trim()) {
+      setMessage('Course name is required.');
       return;
     }
 
+    const payload: { name: string; passKey?: string } = { name: newCourseName.trim() };
+    if (newCoursePassKey.trim()) {
+      payload.passKey = newCoursePassKey.trim();
+    }
+
+    setIsLoading(true);
+
     try {
-      const res = await fetch('/api/admin/courses', {
+      const res = await fetch('/api/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
+      if (res.ok) {
+        const course: Course = await res.json();
+        setCourses([...courses, course]);
+        setNewCourseName('');
+        setNewCoursePassKey('');
+        setMessage(`Course added successfully. PassKey: ${course.passKey || '—'}`);
+      } else {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to create course');
+        setMessage(errorData.error || 'Failed to add course.');
       }
-
-      const newCourse: Course = await res.json();
-      setCourses([...courses, newCourse]);
-      setForm({ name: '', passKey: '', instructorId: 0 });
-      setError(''); // Clear any existing errors
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (error) {
+      console.error(error);
+      setMessage('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
-  // Handle deletion of a course
-  const handleDelete = async (id: number) => {
+  // Delete course
+  const handleDeleteCourse = async (id: number) => {
     if (!confirm('Are you sure you want to delete this course?')) return;
 
+    setIsLoading(true);
+
     try {
-      const res = await fetch(`/api/admin/courses/${id}`, {
+      const res = await fetch(`/api/courses/${id}`, {
         method: 'DELETE',
       });
 
-      if (!res.ok) {
+      if (res.ok) {
+        setCourses(courses.filter((course) => course.id !== id));
+        setMessage('Course deleted successfully.');
+      } else {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to delete course.');
+        setMessage(errorData.error || 'Failed to delete course.');
       }
-
-      setCourses(courses.filter((course) => course.id !== id));
-      setError(''); // Clear any existing errors
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (error) {
+      console.error(error);
+      setMessage('An error occurred while deleting the course.');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
@@ -134,8 +126,6 @@ export default function ManageCourses() {
     setEditingCourse(course);
     setEditCourseName(course.name);
     setEditCoursePassKey(course.passKey || '');
-    setEditInstructorId(course.instructor ? course.instructor.id : 0);
-    setError('');
   };
 
   // Close edit modal
@@ -143,8 +133,6 @@ export default function ManageCourses() {
     setEditingCourse(null);
     setEditCourseName('');
     setEditCoursePassKey('');
-    setEditInstructorId(0);
-    setError('');
   };
 
   // Handle update course
@@ -152,160 +140,138 @@ export default function ManageCourses() {
     if (!editingCourse) return;
 
     if (!editCourseName.trim()) {
-      setError('Course name is required.');
-      return;
-    }
-
-    if (editInstructorId === 0) {
-      setError('Please select an instructor.');
+      setMessage('Course name is required.');
       return;
     }
 
     if (editCoursePassKey && !/^[a-zA-Z0-9]{0,6}$/.test(editCoursePassKey.trim())) {
-      setError('PassKey must be alphanumeric and up to 6 characters.');
+      setMessage('PassKey must be alphanumeric and up to 6 characters.');
       return;
     }
 
+    setIsLoading(true);
+
     try {
-      const payload: { name: string; passKey?: string | null; instructorId: number } = {
-        name: editCourseName.trim(),
-        instructorId: editInstructorId,
-      };
-
-      if (editCoursePassKey.trim()) {
-        payload.passKey = editCoursePassKey.trim();
-      } else {
-        payload.passKey = null;
-      }
-
-      const res = await fetch(`/api/admin/courses/${editingCourse.id}`, {
+      const res = await fetch(`/api/courses/${editingCourse.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          name: editCourseName.trim(),
+          passKey: editCoursePassKey.trim() || null,
+        }),
       });
 
-      if (!res.ok) {
+      if (res.ok) {
+        const updatedCourse: Course = await res.json();
+        setCourses(courses.map((c) => (c.id === updatedCourse.id ? updatedCourse : c)));
+        setMessage('Course updated successfully.');
+        closeEditModal();
+      } else {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to update course.');
+        setMessage(errorData.error || 'Failed to update course.');
       }
-
-      const updatedCourse: Course = await res.json();
-      setCourses(courses.map((c) => (c.id === updatedCourse.id ? updatedCourse : c)));
-      closeEditModal();
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (error) {
+      console.error(error);
+      setMessage('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
-  if (loading) return <div className="p-8">Loading courses...</div>;
-
   return (
-    <div className="min-h-screen p-8 bg-gray-100">
-      <h1 className="text-3xl font-bold mb-6">Manage Courses</h1>
+    <div className="min-h-screen p-4 md:p-8 bg-gray-100">
+      <h1 className="text-3xl font-bold mb-6 text-center">Admin: Manage Courses</h1>
 
-      {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+      {message && (
+        <p
+          className={`mb-4 text-center font-semibold ${
+            message.includes('successfully') ? 'text-green-600' : 'text-red-600'
+          }`}
+        >
+          {message}
+        </p>
+      )}
 
-      {/* Create New Course Form */}
-      <form onSubmit={handleCreate} className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Create New Course</h2>
-        <div className="flex flex-col md:flex-row md:space-x-4">
-          <input
-            type="text"
-            placeholder="Course Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="mb-4 md:mb-0 p-2 border border-gray-300 rounded w-full md:w-auto"
-            required
-          />
-          <input
-            type="text"
-            placeholder="PassKey (optional)"
-            value={form.passKey}
-            onChange={(e) => setForm({ ...form, passKey: e.target.value })}
-            className="mb-4 md:mb-0 p-2 border border-gray-300 rounded w-full md:w-auto"
-            maxLength={6}
-          />
-          <select
-            value={form.instructorId}
-            onChange={(e) => setForm({ ...form, instructorId: parseInt(e.target.value, 10) })}
-            className="mb-4 md:mb-0 p-2 border border-gray-300 rounded w-full md:w-auto"
-            required
-          >
-            <option value={0} disabled>
-              Select Instructor
-            </option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name} ({user.email})
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full md:w-auto"
-            disabled={loading}
-          >
-            {loading ? 'Creating...' : 'Create'}
-          </button>
-        </div>
-      </form>
+      {/* Add Course Form */}
+      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center">
+        <input
+          type="text"
+          value={newCourseName}
+          onChange={(e) => setNewCourseName(e.target.value)}
+          className="border border-gray-300 p-2 rounded mr-0 sm:mr-2 mb-2 sm:mb-0 w-full sm:w-1/3"
+          placeholder="New course name"
+        />
+        <input
+          type="text"
+          value={newCoursePassKey}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (/^[a-zA-Z0-9]*$/.test(value) && value.length <= 6) {
+              setNewCoursePassKey(value);
+            }
+          }}
+          className="border border-gray-300 p-2 rounded mr-0 sm:mr-2 mb-2 sm:mb-0 w-full sm:w-1/4"
+          placeholder="PassKey (optional)"
+          maxLength={6}
+        />
+        <button
+          onClick={handleAddCourse}
+          className="bg-blue-500 text-white px-4 py-2 rounded w-full sm:w-auto"
+        >
+          Add Course
+        </button>
+      </div>
 
-      {/* Courses List */}
-      <h2 className="text-2xl font-semibold mb-4">Existing Courses</h2>
-      <table className="w-full bg-white shadow rounded">
-        <thead>
-          <tr>
-            <th className="py-2 px-4 border-b">ID</th>
-            <th className="py-2 px-4 border-b">Name</th>
-            <th className="py-2 px-4 border-b">Instructor</th>
-            <th className="py-2 px-4 border-b">PassKey</th>
-            <th className="py-2 px-4 border-b">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {courses.map((course) => (
-            <tr key={course.id}>
-              <td className="py-2 px-4 border-b text-center">{course.id}</td>
-              <td className="py-2 px-4 border-b">{course.name}</td>
-              <td className="py-2 px-4 border-b">
-                {course.instructor ? (
-                  `${course.instructor.name} (${course.instructor.email})`
-                ) : (
-                  'Unknown'
-                )}
-              </td>
-              <td className="py-2 px-4 border-b">{course.passKey || 'N/A'}</td>
-              <td className="py-2 px-4 border-b text-center">
-                <button
-                  onClick={() => router.push(`/admin/courses/${course.id}/members`)}
-                  className="bg-green-500 text-white px-2 py-1 rounded mr-2 mb-2 sm:mb-0"
-                >
-                  Manage Members
-                </button>
-                <button
-                  onClick={() => openEditModal(course)}
-                  className="bg-yellow-500 text-white px-2 py-1 rounded mr-2 mb-2 sm:mb-0"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(course.id)}
-                  className="bg-red-500 text-white px-2 py-1 rounded"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-          {courses.length === 0 && (
+      {/* Courses Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse bg-white shadow-md rounded">
+          <thead>
             <tr>
-              <td colSpan={5} className="text-center py-4">
-                No courses found.
-              </td>
+              <th className="border-b p-2 text-left">ID</th>
+              <th className="border-b p-2 text-left">Name</th>
+              <th className="border-b p-2 text-left">PassKey</th>
+              <th className="border-b p-2 text-center">Actions</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {courses.map((course) => (
+              <tr key={course.id} className="hover:bg-gray-50">
+                <td className="border-b p-2">{course.id}</td>
+                <td className="border-b p-2">{course.name}</td>
+                <td className="border-b p-2">{course.passKey || '—'}</td>
+                <td className="border-b p-2 text-center">
+                  <button
+                    onClick={() => router.push(`/admin/courses/${course.id}/members`)}
+                    className="bg-green-500 text-white px-2 py-1 rounded mr-2 mb-2 sm:mb-0"
+                  >
+                    Manage Members
+                  </button>
+                  <button
+                    onClick={() => openEditModal(course)}
+                    className="bg-yellow-500 text-white px-2 py-1 rounded mr-2 mb-2 sm:mb-0"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCourse(course.id)}
+                    className="bg-red-500 text-white px-2 py-1 rounded"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {courses.length === 0 && (
+              <tr>
+                <td colSpan={4} className="p-4 text-center">
+                  No courses available.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Edit Modal */}
       {editingCourse && (
@@ -314,15 +280,12 @@ export default function ManageCourses() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="edit-course-title"
-          onClick={closeEditModal}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') closeEditModal();
+          }}
         >
-          <div
-            className="bg-white rounded-lg p-6 w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="edit-course-title" className="text-2xl font-bold mb-4">
-              Edit Course
-            </h2>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 id="edit-course-title" className="text-2xl font-bold mb-4">Edit Course</h2>
 
             <div className="mb-4">
               <label className="block mb-2 font-medium">Course Name</label>
@@ -350,25 +313,6 @@ export default function ManageCourses() {
                 placeholder="PassKey (optional)"
                 maxLength={6}
               />
-            </div>
-
-            <div className="mb-4">
-              <label className="block mb-2 font-medium">Instructor</label>
-              <select
-                value={editInstructorId}
-                onChange={(e) => setEditInstructorId(parseInt(e.target.value, 10))}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              >
-                <option value={0} disabled>
-                  Select Instructor
-                </option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name} ({user.email})
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div className="flex justify-end">
