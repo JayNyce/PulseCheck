@@ -1,5 +1,5 @@
 'use client';
-
+// trying it out
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
