@@ -1,7 +1,7 @@
 // src/app/auth/reset-password/[token]/page.tsx
 
 'use client';
-
+import React from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 

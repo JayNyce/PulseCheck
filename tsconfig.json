@@ -5,20 +5,23 @@
       "dom.iterable",
       "esnext"
     ],
+    "types": [
+      "@testing-library/jest-dom",
+      "jest"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
-    "target": "esnext",
+    "target": "es6",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "es2020",
-    "moduleResolution": "bundler",
+    "module": "commonjs",
+    //"moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "types": ["next-auth"], 
     "baseUrl": "src",
     "plugins": [
       {
@@ -32,9 +35,11 @@
       "@/lib/*": [
         "lib/*"
       ]
-    }
+    },
+    "moduleResolution": "node"
   },
   "include": [
+    "src",
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",

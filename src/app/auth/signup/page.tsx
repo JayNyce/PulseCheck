@@ -1,28 +1,65 @@
 // src/app/auth/signup/page.tsx
 
 'use client';
-
-import { useState } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+interface Course {
+  id: number;
+  name: string;
+  passKey: string | null;
+}
 
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<number | 'No Enrollment'>('No Enrollment');
+  const [passKey, setPassKey] = useState('');
+  const [message, setMessage] = useState('');
   const router = useRouter();
+
+  // Fetch courses on component mount
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch('/api/courses');
+        if (!res.ok) throw new Error('Failed to fetch courses.');
+        const data: Course[] = await res.json();
+        setCourses(data);
+      } catch (error) {
+        console.error(error);
+        setMessage('Failed to load courses.');
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  // Determine if selected course requires passKey
+  const selectedCourse = courses.find((course) => course.id === selectedCourseId);
+  const requiresPassKey = selectedCourse?.passKey ? true : false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setLoading(true);
-    setMessage(null);
+    // Prepare payload
+    const payload: any = { name, email, password };
+    if (selectedCourseId !== 'No Enrollment') {
+      payload.courseId = selectedCourseId;
+      if (requiresPassKey) {
+        payload.passKey = passKey.trim();
+      }
+    }
+
+    // Basic validation
+    if (requiresPassKey && !passKey.trim()) {
+      setMessage('PassKey is required for the selected course.');
+      return;
+    }
 
     try {
-      // Prepare payload
-      const payload = { name, email, password };
-
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -30,17 +67,15 @@ export default function SignupPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Signup successful. Redirecting to login...' });
+        setMessage('Signup successful. Redirecting to login...');
         setTimeout(() => router.push('/auth/login'), 3000);
       } else {
         const errorData = await res.json();
-        setMessage({ type: 'error', text: `Signup failed: ${errorData.error || 'Unknown error'}` });
+        setMessage(`Signup failed: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error(error);
-      setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
-    } finally {
-      setLoading(false);
+      setMessage('An error occurred. Please try again.');
     }
   };
 
@@ -52,10 +87,10 @@ export default function SignupPage() {
         {message && (
           <p
             className={`text-center font-semibold ${
-              message.type === 'success' ? 'text-green-600' : 'text-red-600'
+              message.includes('successful') ? 'text-green-600' : 'text-red-600'
             }`}
           >
-            {message.text}
+            {message}
           </p>
         )}
         
@@ -86,8 +121,37 @@ export default function SignupPage() {
           required
         />
         
-        <button type="submit" className={`w-full bg-black text-white p-2 rounded ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'}`} disabled={loading}>
-          {loading ? 'Signing Up...' : 'Sign Up'}
+        {/* Optional Course Enrollment */}
+        <div>
+          <label htmlFor="course-select" className="block mb-2 font-medium">Enroll in a Course (Optional)</label>
+          <select
+            id="course-select" // Add id attribute here
+            value={selectedCourseId}
+            onChange={(e) => setSelectedCourseId(e.target.value === 'No Enrollment' ? 'No Enrollment' : parseInt(e.target.value))}
+            className="w-full p-2 border rounded"
+          >
+            <option value="No Enrollment">No Enrollment</option>
+            {courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.name} {course.passKey ? '(Requires PassKey)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {requiresPassKey && (
+          <input
+            type="text"
+            value={passKey}
+            onChange={(e) => setPassKey(e.target.value)}
+            placeholder="Enter PassKey"
+            className="w-full p-2 border rounded"
+            maxLength={6}
+          />
+        )}
+        
+        <button type="submit" className="w-full bg-black text-white p-2 rounded">
+          Sign Up
         </button>
       </form>
     </div>

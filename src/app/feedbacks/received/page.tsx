@@ -1,7 +1,7 @@
 // src/app/feedbacks/received/page.tsx
 
 'use client';
-
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
