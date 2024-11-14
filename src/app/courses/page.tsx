@@ -9,8 +9,7 @@ import { useEffect, useState, useMemo } from 'react';
 interface Course {
   id: number;
   name: string;
-  passKey?: string;
-  studentCount?: number; // New field to store the number of enrolled students
+  requiresPassKey: boolean; // Updated field
 }
 
 export default function CoursesPage() {
@@ -97,7 +96,7 @@ export default function CoursesPage() {
   const handleEnrollWithPasskey = async () => {
     if (!selectedCourse) return;
 
-    if (selectedCourse.passKey && !passKeyInput.trim()) {
+    if (selectedCourse.requiresPassKey && !passKeyInput.trim()) {
       setMessage({ type: 'error', text: 'Passkey is required to enroll in this course.' });
       return;
     }
@@ -109,7 +108,7 @@ export default function CoursesPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: selectedCourse.passKey ? JSON.stringify({ passKey: passKeyInput.trim() }) : '{}',
+        body: selectedCourse.requiresPassKey ? JSON.stringify({ passKey: passKeyInput.trim() }) : '{}',
       });
 
       if (!res.ok) {
@@ -174,7 +173,7 @@ export default function CoursesPage() {
       return;
     }
 
-    if (course.passKey) {
+    if (course.requiresPassKey) {
       openEnrollModal(course);
     } else {
       await handleEnrollWithoutPasskey(course);
@@ -249,9 +248,7 @@ export default function CoursesPage() {
               <div key={course.id} className="bg-white p-6 rounded-lg shadow-md flex flex-col justify-between">
                 <div>
                   <h3 className="text-xl font-bold mb-2">{course.name}</h3>
-                  {course.studentCount !== undefined && (
-                    <p className="text-gray-600">Enrolled Students: {course.studentCount}</p>
-                  )}
+                  {/* Removed studentCount display */}
                 </div>
                 <button
                   onClick={() => handleUnenroll(course.id)}
@@ -285,7 +282,7 @@ export default function CoursesPage() {
               <option value="">Select a course</option>
               {availableCourses.map((course) => (
                 <option key={course.id} value={course.id}>
-                  {course.name} {course.passKey ? '(Requires Passkey)' : ''}
+                  {course.name} {course.requiresPassKey ? '(Requires PassKey)' : ''}
                 </option>
               ))}
             </select>
@@ -317,6 +314,7 @@ export default function CoursesPage() {
               onChange={(e) => setPassKeyInput(e.target.value)}
               placeholder="Enter passkey"
               className="w-full px-4 py-2 border rounded mb-4"
+              maxLength={6}
             />
             <div className="flex justify-end">
               <button
