@@ -1,7 +1,7 @@
 // src/app/admin/courses/[courseId]/members/page.tsx
 
 'use client';
-
+import React from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';

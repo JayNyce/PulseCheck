@@ -1,7 +1,7 @@
 // src/app/dashboard/page.tsx
 
 'use client';
-
+import React from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
