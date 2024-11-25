@@ -3,7 +3,9 @@
 'use client';
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
+
+//refracted
 
 interface Topic {
   id: number;
@@ -20,7 +22,7 @@ interface Course {
 }
 
 export default function ManageTopics() {
-  const router = useRouter();
+  // const router = useRouter();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
