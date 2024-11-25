@@ -3,9 +3,7 @@
 'use client';
 import React from 'react';
 import { useState, useEffect } from 'react';
-// import { useRouter } from 'next/navigation';
-
-//refracted
+import { useRouter } from 'next/navigation';
 
 interface Topic {
   id: number;
@@ -22,7 +20,7 @@ interface Course {
 }
 
 export default function ManageTopics() {
-  // const router = useRouter();
+  const router = useRouter();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -95,7 +93,7 @@ export default function ManageTopics() {
     if (!confirm('Are you sure you want to delete this topic?')) return;
 
     try {
-      const res = await fetch(`/api/admin/topics/${id}`, {
+      const res = await fetch(/api/admin/topics/${id}, {
         method: 'DELETE',
       });
 
