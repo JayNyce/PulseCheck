@@ -20,7 +20,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: ’20’
+        node-version: '20'  # Fixed curly quotes
 
     - name: Set up Environment Variables
       run: |
@@ -44,11 +44,9 @@ jobs:
             done < env.local
           fi
 
-      # Step 3: Debug to verify loaded variables
     - name: Debug Environment Variables
       run: cat $GITHUB_ENV
 
-      # Step 4: Use the environment variables
     - name: Use Environment Variables
       run: |
           echo "POSTGRES_URL is $POSTGRES_URL"
@@ -56,7 +54,6 @@ jobs:
       env:
           POSTGRES_URL: ${{ env.POSTGRES_URL }}
           NEXTAUTH_URL: ${{ env.NEXTAUTH_URL }}
-
 
     - name: Install Dependencies
       run: |
@@ -71,7 +68,6 @@ jobs:
         npx prisma studio --help > /dev/null  
         npm run test  
 
-
   frontend-build:
     name: Frontend Build & Test
     runs-on: ubuntu-latest
@@ -83,13 +79,12 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: ’20’ 
+        node-version: '20'  # Fixed curly quotes
 
     - name: Install dependencies
       run: |
         npm install 
         npm install @testing-library/react @testing-library/jest-dom jest react-router-dom
-
 
     - name: Run Jest tests
       run: |
@@ -106,7 +101,7 @@ jobs:
   deploy:
     name: Deploy Application
     runs-on: ubuntu-latest
-    needs: [backend-build, frontend-build] # Wait for the frontend build and test job to finish
+    needs: [backend-build, frontend-build] # Wait for the backend and frontend jobs to finish
 
     steps:
     - name: Checkout repository
@@ -114,4 +109,4 @@ jobs:
 
     - name: Deploy application
       run: |
-        echo "Deploying application both backend and front end…” 
+        echo "Deploying application both backend and front end…"
