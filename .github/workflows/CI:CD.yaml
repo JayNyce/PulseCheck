@@ -24,12 +24,39 @@ jobs:
 
     - name: Set up Environment Variables
       run: |
-        echo "POSTGRES_URL="your_database_user_here"" >> $GITHUB_ENV
-        echo "POSTGRES_USER="your_database_user_here"" >> $GITHUB_ENV
-        echo "POSTGRES_PASSWORD="your_database_password_here"" >> $GITHUB_ENV
-        echo "POSTGRES_DATABASE="your_database_name_here"" >> $GITHUB_ENV
-        echo "NEXTAUTH_URL=http://localhost:3000" >> $GITHUB_ENV
-        echo "NEXTAUTH_SECRET=your_generated_secret_here" >> $GITHUB_ENV
+          # Load from 'env' file
+          while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ ! $line =~ ^# && $line =~ = ]]; then
+              key=$(echo "$line" | cut -d '=' -f 1)
+              value=$(echo "$line" | cut -d '=' -f 2-)
+              echo "$key=$value" >> $GITHUB_ENV
+            fi
+          done < env
+
+          # Load from 'env.local' file if it exists
+          if [[ -f env.local ]]; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
+              if [[ ! $line =~ ^# && $line =~ = ]]; then
+                key=$(echo "$line" | cut -d '=' -f 1)
+                value=$(echo "$line" | cut -d '=' -f 2-)
+                echo "$key=$value" >> $GITHUB_ENV
+              fi
+            done < env.local
+          fi
+
+      # Step 3: Debug to verify loaded variables
+    - name: Debug Environment Variables
+      run: cat $GITHUB_ENV
+
+      # Step 4: Use the environment variables
+    - name: Use Environment Variables
+      run: |
+          echo "POSTGRES_URL is $POSTGRES_URL"
+          echo "NEXTAUTH_URL is $NEXTAUTH_URL"
+      env:
+          POSTGRES_URL: ${{ env.POSTGRES_URL }}
+          NEXTAUTH_URL: ${{ env.NEXTAUTH_URL }}
+
 
     - name: Install Dependencies
       run: |
@@ -61,7 +88,7 @@ jobs:
     - name: Install dependencies
       run: |
         npm install 
-	npm install @testing-library/react @testing-library/jest-dom jest react-router-dom
+        npm install @testing-library/react @testing-library/jest-dom jest react-router-dom
 
 
     - name: Run Jest tests
