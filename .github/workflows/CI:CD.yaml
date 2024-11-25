@@ -14,16 +14,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'  # Fixed curly quotes
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'  # Fixed quotes and proper indentation
 
-    - name: Set up Environment Variables
-      run: |
+      - name: Set up Environment Variables
+        run: |
           # Load from 'env' file
           while IFS= read -r line || [[ -n "$line" ]]; do
             if [[ ! $line =~ ^# && $line =~ = ]]; then
@@ -44,59 +44,59 @@ jobs:
             done < env.local
           fi
 
-    - name: Debug Environment Variables
-      run: cat $GITHUB_ENV
+      - name: Debug Environment Variables
+        run: cat $GITHUB_ENV
 
-    - name: Use Environment Variables
-      run: |
+      - name: Use Environment Variables
+        run: |
           echo "POSTGRES_URL is $POSTGRES_URL"
           echo "NEXTAUTH_URL is $NEXTAUTH_URL"
-      env:
+        env:
           POSTGRES_URL: ${{ env.POSTGRES_URL }}
           NEXTAUTH_URL: ${{ env.NEXTAUTH_URL }}
 
-    - name: Install Dependencies
-      run: |
-        npm install
+      - name: Install Dependencies
+        run: |
+          npm install
 
-    - name: Run Prisma Migrations
-      run: |
-        npx prisma migrate dev
+      - name: Run Prisma Migrations
+        run: |
+          npx prisma migrate dev
 
-    - name: Run Backend Tests
-      run: |
-        npx prisma studio --help > /dev/null  
-        npm run test  
+      - name: Run Backend Tests
+        run: |
+          npx prisma studio --help > /dev/null  
+          npm run test  
 
   frontend-build:
     name: Frontend Build & Test
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'  # Fixed curly quotes
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'  # Fixed quotes and proper indentation
 
-    - name: Install dependencies
-      run: |
-        npm install 
-        npm install @testing-library/react @testing-library/jest-dom jest react-router-dom
+      - name: Install dependencies
+        run: |
+          npm install 
+          npm install @testing-library/react @testing-library/jest-dom jest react-router-dom
 
-    - name: Run Jest tests
-      run: |
-        npm test  # Run Jest test cases
+      - name: Run Jest tests
+        run: |
+          npm test  # Run Jest test cases
 
-    - name: Lint the code
-      run: |
-        npm run lint  # Run ESLint for code quality
+      - name: Lint the code
+        run: |
+          npm run lint  # Run ESLint for code quality
 
-    - name: Build the application
-      run: |
-        npm run build  # Create a production build of the application
+      - name: Build the application
+        run: |
+          npm run build  # Create a production build of the application
 
   deploy:
     name: Deploy Application
@@ -104,9 +104,9 @@ jobs:
     needs: [backend-build, frontend-build] # Wait for the backend and frontend jobs to finish
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Deploy application
-      run: |
-        echo "Deploying application both backend and front end…"
+      - name: Deploy application
+        run: |
+          echo "Deploying application both backend and frontend..."
