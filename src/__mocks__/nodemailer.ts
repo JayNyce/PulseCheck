@@ -1,5 +1,5 @@
 
-
+//
 const sendMailMock = jest.fn();
 
 export default {
