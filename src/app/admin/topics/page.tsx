@@ -93,7 +93,7 @@ export default function ManageTopics() {
     if (!confirm('Are you sure you want to delete this topic?')) return;
 
     try {
-      const res = await fetch(/api/admin/topics/${id}, {
+      const res = await fetch(`/api/admin/topics/${id}`, {
         method: 'DELETE',
       });
 

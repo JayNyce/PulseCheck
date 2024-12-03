@@ -1,5 +1,5 @@
 // src/app/api/admin/courses/[id]/route.ts
-
+import React from 'react';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';

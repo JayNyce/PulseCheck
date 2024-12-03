@@ -1,11 +1,9 @@
 // src/app/api/dashboard/route.ts
 
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-
-const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
   try {
@@ -85,7 +83,7 @@ export async function GET(request: Request) {
           toUser: { name: feedback.toUser.name },
           topic: { name: feedback.topic.name },
           rating: feedback.rating,
-          comment: feedback.comment, // Ensure comment is included
+          comment: feedback.comment,
           created_at: feedback.created_at,
         })),
       },
@@ -97,6 +95,7 @@ export async function GET(request: Request) {
     console.error('Error fetching dashboard data:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
+    // No need to call prisma.$disconnect in API routes when using it via separate import
+    
   }
 }

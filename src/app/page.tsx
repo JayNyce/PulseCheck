@@ -1,12 +1,12 @@
 'use client';
-// trying it out
+import React from 'react';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Image from 'next/image';
 import Footer from '../components/footer'; // Import the Footer component
-//
+
 const features = [
     {
         title: "Real-Time Feedback",

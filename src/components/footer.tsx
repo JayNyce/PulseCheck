@@ -1,5 +1,5 @@
 ﻿'use client';
-
+import React from 'react';
 export default function Footer() {
     return (
         <footer className="w-full py-6 bg-black text-white mt-16">

@@ -1,7 +1,7 @@
 // src/app/instructor/courses/create/page.tsx
 
 'use client';
-
+import React from 'react';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
