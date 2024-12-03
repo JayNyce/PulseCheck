@@ -2,19 +2,11 @@
   "name": "pulsecheck",
   "version": "0.1.0",
   "private": true,
-<<<<<<< HEAD
   "type": "module",
   "prisma": {},
   "scripts": {
     "test": "jest --config=jest.config.cjs",
     "test:watch": "jest --watch",
-=======
-  "prisma": {},
-  "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "type":"module",
->>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
