@@ -17,10 +17,6 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "module": "commonjs",
-<<<<<<< HEAD
-=======
-    //"moduleResolution": "bundler",
->>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
