@@ -1,5 +1,9 @@
 ﻿'use client';
+<<<<<<< HEAD
 import React from 'react';
+=======
+
+>>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513
 export default function Footer() {
     return (
         <footer className="w-full py-6 bg-black text-white mt-16">

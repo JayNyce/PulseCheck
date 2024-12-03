@@ -20,6 +20,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
+<<<<<<< HEAD
         node-version: '20'
 
     - name: Set up Environment Variables
@@ -57,6 +58,18 @@ jobs:
           POSTGRES_URL: ${{ env.POSTGRES_URL }}
           NEXTAUTH_URL: ${{ env.NEXTAUTH_URL }}
 
+=======
+        node-version: ’20’
+
+    - name: Set up Environment Variables
+      run: |
+        echo "POSTGRES_URL="your_database_user_here"" >> $GITHUB_ENV
+        echo "POSTGRES_USER="your_database_user_here"" >> $GITHUB_ENV
+        echo "POSTGRES_PASSWORD="your_database_password_here"" >> $GITHUB_ENV
+        echo "POSTGRES_DATABASE="your_database_name_here"" >> $GITHUB_ENV
+        echo "NEXTAUTH_URL=http://localhost:3000" >> $GITHUB_ENV
+        echo "NEXTAUTH_SECRET=your_generated_secret_here" >> $GITHUB_ENV
+>>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513
 
     - name: Install Dependencies
       run: |
@@ -88,7 +101,11 @@ jobs:
     - name: Install dependencies
       run: |
         npm install 
+<<<<<<< HEAD
         npm install @testing-library/react @testing-library/jest-dom jest react-router-dom
+=======
+	npm install @testing-library/react @testing-library/jest-dom jest react-router-dom
+>>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513
 
 
     - name: Run Jest tests

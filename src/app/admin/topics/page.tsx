@@ -93,7 +93,11 @@ export default function ManageTopics() {
     if (!confirm('Are you sure you want to delete this topic?')) return;
 
     try {
+<<<<<<< HEAD
       const res = await fetch(`/api/admin/topics/${id}`, {
+=======
+      const res = await fetch(/api/admin/topics/${id}, {
+>>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513
         method: 'DELETE',
       });
 
@@ -191,4 +195,8 @@ export default function ManageTopics() {
       </table>
     </div>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513

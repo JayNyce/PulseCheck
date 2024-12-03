@@ -1,7 +1,11 @@
 // src/app/instructor/courses/[courseId]/members/page.tsx
 
 'use client';
+<<<<<<< HEAD
 import React from 'react';
+=======
+
+>>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';

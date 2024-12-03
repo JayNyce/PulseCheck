@@ -7,7 +7,11 @@
     "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
+<<<<<<< HEAD
       "@/*":["src/*"]
+=======
+      "@/*": ["src/*"]
+>>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513
     }
   },
   "include": ["src", "tests"]

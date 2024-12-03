@@ -1,5 +1,9 @@
 'use client';
+<<<<<<< HEAD
 import React from 'react';
+=======
+// trying it out
+>>>>>>> 77f930577d6f878e48ed4d2165670eacb47ec513
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
