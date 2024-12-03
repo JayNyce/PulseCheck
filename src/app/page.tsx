@@ -1,11 +1,11 @@
 'use client';
-// trying it out
+import React from 'react';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Image from 'next/image';
-import Footer from '../components/footer'; // Import the Footer component
+import Footer from '../components/footer';
 
 const features = [
     {
@@ -56,20 +56,21 @@ export default function HomePage() {
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
-            {/* Hero Section with Video Background */}
-            <section className="relative w-full h-screen">
+            {/* Hero Section */}
+            <header className="relative w-full h-screen">
                 <video
                     className="absolute inset-0 w-full h-full object-cover"
                     autoPlay
                     loop
                     muted
+                    aria-label="Background video of PulseCheck platform"
                 >
                     <source src="/assets/images/PulseCheck.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                 </video>
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent flex flex-col items-center justify-center text-center px-4">
                     <motion.h1
-                        className="text-6xl text-white font-bold mb-4"
+                        className="text-5xl sm:text-6xl text-white font-extrabold tracking-tight mb-4"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 1 }}
@@ -77,7 +78,7 @@ export default function HomePage() {
                         Welcome to PulseCheck
                     </motion.h1>
                     <motion.p
-                        className="text-xl text-gray-200 mb-6"
+                        className="text-lg sm:text-xl text-gray-200 mb-6 max-w-3xl"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 1.5 }}
@@ -86,38 +87,43 @@ export default function HomePage() {
                     </motion.p>
                     <motion.button
                         onClick={handlePulseCheckClick}
-                        className="px-8 py-3 bg-yellow-500 text-black rounded-lg text-lg font-semibold hover:bg-yellow-400 transition"
-                        animate={{ scale: [1.5, 1.05, 1] }}
+                        className="px-6 py-3 bg-yellow-500 text-black rounded-full text-lg font-medium hover:bg-yellow-400 transition focus:ring-4 focus:ring-yellow-300 shadow-lg"
+                        animate={{ scale: [1.1, 1.05, 1] }}
                         transition={{
                             duration: 0.8,
                             repeat: Infinity,
                             repeatType: 'loop',
                             ease: 'easeInOut',
                         }}
+                        aria-label="Get started with PulseCheck"
                     >
                         Ready, Set, Feedback!
                     </motion.button>
                 </div>
-            </section>
+            </header>
 
-            {/* Stats / Logos Section */}
-            <section className="py-12 bg-gray-100 flex flex-col items-center">
-                <h2 className="text-4xl font-semibold text-center mb-8 text-black-400">Students and Faculty from These Universities Use Our Website!</h2>
-                <div className="flex space-x-8">
-                    <Image src="/assets/images/slu-primary-blue-rgb.png" alt="University 1" width={150} height={50} />
-                    <Image src="/assets/images/slu-primary-blue-rgb.png" alt="University 2" width={150} height={50} />
-                    <Image src="/assets/images/slu-primary-blue-rgb.png" alt="University 3" width={150} height={50} />
+            {/* Stats Section */}
+            <section className="py-16 bg-gray-100 flex flex-col items-center">
+                <h2 className="text-3xl sm:text-4xl font-semibold text-center mb-12 text-black">
+                    Students and Faculty from These Universities Use Our Website!
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-12">
+                    {Array(3)
+                        .fill("/assets/images/slu-primary-blue-rgb.png")
+                        .map((src, index) => (
+                            <Image key={index} src={src} alt={`University ${index + 1} Logo`} width={150} height={50} />
+                        ))}
                 </div>
             </section>
 
             {/* Features Section */}
-            <section className="mt-12 px-6">
-                <h2 className="text-4xl font-semibold text-center mb-8">Features</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <section className="mt-16 px-6">
+                <h2 className="text-3xl sm:text-4xl font-semibold text-center mb-12">Features</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {features.map((feature, index) => (
                         <motion.div
                             key={index}
-                            className="p-6 border rounded-lg shadow-md bg-white flex flex-col items-center hover:shadow-lg transition-shadow duration-300"
+                            className="p-8 border rounded-lg shadow-md bg-white flex flex-col items-center hover:shadow-xl transition-shadow duration-300"
                             initial="hidden"
                             animate="visible"
                             variants={slideIn}
@@ -129,56 +135,36 @@ export default function HomePage() {
                                     alt={feature.title}
                                     width={100}
                                     height={100}
-                                    className="mb-4"
+                                    className="mb-6"
                                 />
                             )}
-                            <h3 className="text-2xl font-bold mb-2">{feature.title}</h3>
-                            <p className="text-center text-gray-600">{feature.description}</p>
+                            <h3 className="text-xl font-bold mb-4 text-gray-800">{feature.title}</h3>
+                            <p className="text-center text-gray-600 leading-relaxed">{feature.description}</p>
                         </motion.div>
                     ))}
                 </div>
             </section>
 
-            {/* Testimonials Section */}
-            <section className="mt-12 px-6">
-                <h2 className="text-4xl font-semibold text-center mb-8">What Users Are Saying</h2>
-                <motion.div
-                    className="flex space-x-6 overflow-x-auto scrollbar-hide"
-                    whileTap={{ cursor: "grabbing" }}
-                >
-                    {testimonials.map((testimonial, index) => (
-                        <motion.blockquote
-                            key={index}
-                            className="p-6 border-l-4 border-gray-500 bg-gray-100 flex-1 min-w-[300px] rounded-lg shadow-md"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.8 }}
-                        >
-                            <p className="italic text-lg">"{testimonial.quote}"</p>
-                            <cite className="block mt-4 font-bold text-gray-800">- {testimonial.author}</cite>
-                        </motion.blockquote>
-                    ))}
-                </motion.div>
-            </section>
-
             {/* CTA Section */}
             <motion.section
-                className="my-12 py-24 bg-yellow-500 text-center text-black"
+                className="my-16 py-16 px-6 bg-gradient-to-r from-yellow-400 to-yellow-500 text-center text-black rounded-lg shadow-lg mx-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1 }}
             >
-                <h3 className="text-3xl font-semibold mb-6">Join PulseCheck Today</h3>
-                <p className="text-xl mb-6">Enhance your course effectiveness with real-time feedback from your peers and instructors.</p>
+                <h3 className="text-3xl sm:text-4xl font-semibold mb-8">Join PulseCheck Today</h3>
+                <p className="text-lg sm:text-xl mb-8 max-w-2xl mx-auto">
+                    Enhance your course effectiveness with real-time feedback from your peers and instructors.
+                </p>
                 <motion.button
                     onClick={handlePulseCheckClick}
-                    className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-700 transition"
+                    className="px-6 py-3 bg-black text-white rounded-full font-medium text-lg hover:bg-gray-700 transition focus:ring-4 focus:ring-gray-500 shadow-md"
+                    aria-label="Join PulseCheck now"
                 >
                     Ready, Set, Feedback!
                 </motion.button>
             </motion.section>
 
-            {/* Include Footer */}
             <Footer />
         </div>
     );
