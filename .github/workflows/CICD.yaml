@@ -3,10 +3,10 @@ name: Full CI/CD Pipeline
 on:
   push:
     branches:
-      - final  # Trigger on pushes to the main branch
+      - final  # Trigger on pushes to the final branch
   pull_request:
     branches:
-      - final  # Trigger on pull requests to the main branch
+      - final  # Trigger on pull requests to the final branch
 
 jobs:
   backend-build:
