@@ -4,12 +4,13 @@
 
 import Link from 'next/link';
 import React from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut, signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import AnimatedSignOutButton from './signout';
 import AnimatedFeedbackButton from './feedbackButton';
+import AnimatedSignInButton from './signin';
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -60,7 +61,7 @@ export default function Navbar() {
   }, [pathname]);
 
   return (
-    <nav className="bg-gray-800 text-white shadow-md p-4">
+    <nav className="bg-gray-800 bg-opacity-80 text-white shadow-md p-4">
       <div className="container mx-auto flex flex-wrap items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center text-xl font-bold">
@@ -231,9 +232,8 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/auth/login"
-                className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded"
               >
-                Sign In
+                <AnimatedSignInButton onSignIn={() => signIn()} />
               </Link>
             )}
           </div>
