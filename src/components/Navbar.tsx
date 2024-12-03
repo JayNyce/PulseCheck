@@ -61,7 +61,7 @@ export default function Navbar() {
   }, [pathname]);
 
   return (
-    <nav className="bg-gray-800 bg-opacity-80 text-white shadow-md p-4">
+    <nav className="bg-gray-800 text-white shadow-md p-4">
       <div className="container mx-auto flex flex-wrap items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center text-xl font-bold">
