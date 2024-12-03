@@ -1,0 +1,80 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                       Int           @id @default(autoincrement())
+  name                     String
+  email                    String        @unique
+  password                 String
+  resetPasswordToken       String?
+  resetPasswordTokenExpiry DateTime?
+  isAdmin                  Boolean       @default(false)
+  isInstructor             Boolean       @default(false)
+
+  // Relations
+  feedbacksGiven    Feedback[]   @relation("FeedbackFromUser")
+  feedbacksReceived Feedback[]   @relation("FeedbackToUser")
+  userCourses       UserCourse[]
+  createdCourses    Course[]     @relation("InstructorCourses")
+}
+
+model Topic {
+  id        Int      @id @default(autoincrement())
+  name      String
+  courseId  Int      // Now required
+  course    Course   @relation(fields: [courseId], references: [id])
+  feedbacks Feedback[]
+
+  @@unique([name, courseId])
+}
+
+model Feedback {
+  id         Int      @id @default(autoincrement())
+  rating     Int
+  comment    String
+  created_at DateTime @default(now())
+
+  fromUserId Int?
+  toUserId   Int
+  topicId    Int
+
+  // Relations
+  fromUser User? @relation("FeedbackFromUser", fields: [fromUserId], references: [id])
+  toUser   User  @relation("FeedbackToUser", fields: [toUserId], references: [id])
+  topic    Topic @relation(fields: [topicId], references: [id])
+
+  @@index([toUserId])
+  @@index([fromUserId])
+  @@index([topicId])
+}
+
+model Course {
+  id           Int           @id @default(autoincrement())
+  name         String        @unique
+  passKey      String?
+  instructorId Int
+  instructor   User          @relation("InstructorCourses", fields: [instructorId], references: [id])
+  userCourses  UserCourse[]
+  topics       Topic[]
+  isDeleted    Boolean       @default(false)
+}
+
+
+model UserCourse {
+  userId   Int
+  courseId Int
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@id([userId, courseId]) 
+}

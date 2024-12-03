@@ -1,0 +1,117 @@
+name: Full CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main  # Trigger on pushes to the main branch
+  pull_request:
+    branches:
+      - main  # Trigger on pull requests to the main branch
+
+jobs:
+  backend-build:
+    name: Backend Build, Test & Migrate
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Set up Environment Variables
+      run: |
+          # Load from 'env' file
+          while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ ! $line =~ ^# && $line =~ = ]]; then
+              key=$(echo "$line" | cut -d '=' -f 1)
+              value=$(echo "$line" | cut -d '=' -f 2-)
+              echo "$key=$value" >> $GITHUB_ENV
+            fi
+          done < env
+
+          # Load from 'env.local' file if it exists
+          if [[ -f env.local ]]; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
+              if [[ ! $line =~ ^# && $line =~ = ]]; then
+                key=$(echo "$line" | cut -d '=' -f 1)
+                value=$(echo "$line" | cut -d '=' -f 2-)
+                echo "$key=$value" >> $GITHUB_ENV
+              fi
+            done < env.local
+          fi
+
+      # Step 3: Debug to verify loaded variables
+    - name: Debug Environment Variables
+      run: cat $GITHUB_ENV
+
+      # Step 4: Use the environment variables
+    - name: Use Environment Variables
+      run: |
+          echo "POSTGRES_URL is $POSTGRES_URL"
+          echo "NEXTAUTH_URL is $NEXTAUTH_URL"
+      env:
+          POSTGRES_URL: ${{ env.POSTGRES_URL }}
+          NEXTAUTH_URL: ${{ env.NEXTAUTH_URL }}
+
+
+    - name: Install Dependencies
+      run: |
+        npm install
+
+    - name: Run Prisma Migrations
+      run: |
+        npx prisma migrate dev
+
+    - name: Run Backend Tests
+      run: |
+        npx prisma studio --help > /dev/null  
+        npm run test  
+
+
+  frontend-build:
+    name: Frontend Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ’20’ 
+
+    - name: Install dependencies
+      run: |
+        npm install 
+        npm install @testing-library/react @testing-library/jest-dom jest react-router-dom
+
+
+    - name: Run Jest tests
+      run: |
+        npm test  # Run Jest test cases
+
+    - name: Lint the code
+      run: |
+        npm run lint  # Run ESLint for code quality
+
+    - name: Build the application
+      run: |
+        npm run build  # Create a production build of the application
+
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    needs: [backend-build, frontend-build] # Wait for the frontend build and test job to finish
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Deploy application
+      run: |
+        echo "Deploying application both backend and front end…” 
