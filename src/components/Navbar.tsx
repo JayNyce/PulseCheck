@@ -3,10 +3,14 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
+import React from 'react';
+import { useSession, signOut, signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import AnimatedSignOutButton from './signout';
+import AnimatedFeedbackButton from './feedbackButton';
+import AnimatedSignInButton from './signin';
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -125,28 +129,12 @@ export default function Navbar() {
 
             {/* Feedback Dropdown */}
             <div className="relative" ref={feedbackDropdownRef}>
-              <button
+              <AnimatedFeedbackButton
                 onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
-                className={`text-white hover:bg-gray-700 px-3 py-2 rounded flex items-center focus:outline-none ${
-                  pathname.startsWith('/feedbacks') ? 'bg-gray-700 font-semibold' : ''
-                }`}
-                aria-haspopup="true"
-                aria-expanded={isFeedbackOpen}
-              >
-                Feedback
-                {/* Dropdown Arrow Icon */}
-                <svg
-                  className="ml-1 h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+                isActive={pathname.startsWith('/feedbacks')}
+              />
               {isFeedbackOpen && (
-                <div className="absolute left-0 mt-2 w-48 bg-gray-800 text-white rounded-md shadow-lg z-20">
+                <div className="absolute left-0 mt-2 w-48 bg-gray-800 text-white rounded-md shadow-lg z-20 ease-in-out">
                   <Link
                     href="/feedbacks/submit"
                     className={`block px-4 py-2 hover:bg-gray-700 rounded-t-md ${
@@ -158,7 +146,7 @@ export default function Navbar() {
                   </Link>
                   <Link
                     href="/feedbacks/received"
-                    className={`block px-4 py-2 hover:bg-gray-700 ${
+                    className={`block px-4 py-2 hover:bg-gray-700 duration-500 ${
                       pathname === '/feedbacks/received' ? 'bg-gray-700 font-semibold' : ''
                     }`}
                     onClick={() => setIsFeedbackOpen(false)}
@@ -236,22 +224,16 @@ export default function Navbar() {
                   </button>
                   {isUserMenuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-red-500 text-white rounded-md shadow-lg z-20">
-                      <button
-                        onClick={() => signOut()}
-                        className="block px-4 py-2 hover:bg-red-600 w-full text-left"
-                      >
-                        Sign Out
-                      </button>
-                    </div>
+                    <AnimatedSignOutButton onSignOut={() => signOut()} />
+                  </div>
                   )}
                 </div>
               </>
             ) : (
               <Link
                 href="/auth/login"
-                className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded"
               >
-                Sign In
+                <AnimatedSignInButton onSignIn={() => signIn()} />
               </Link>
             )}
           </div>
