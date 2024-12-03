@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Image from 'next/image';
 import Footer from '../components/footer'; // Import the Footer component
-
+//
 const features = [
     {
         title: "Real-Time Feedback",
